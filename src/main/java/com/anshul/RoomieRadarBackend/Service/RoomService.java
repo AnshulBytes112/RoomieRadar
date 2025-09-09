@@ -33,6 +33,14 @@ public class RoomService {
             room1.setImages(room.getImages());
             room1.setTags(room.getTags());
 
+            room1.setDescription(room.getDescription());
+            room1.setAmenities(room.getAmenities());
+            room1.setAvailaibleFrom(room.getAvailaibleFrom());
+            room1.setDeposit(room.getDeposit());           // ← This was missing!
+            room1.setMaintenance(room.getMaintenance());   // ← This was missing!
+            room1.setParking(room.getParking());
+            room1.setPetFriendly(room.getPetFriendly());
+            room1.setFurnished(room.getFurnished());
             // ✅ associate logged-in user
             room1.setPostedBy(user);
 
@@ -77,6 +85,47 @@ public class RoomService {
         roomRepository.delete(room);
 
         return true;
+    }
+
+    public Room getRoomById(Long id) {
+        Optional<Room> roomOpt = roomRepository.findById(id);
+        return roomOpt.orElse(null);
+    }
+
+    public List<Room> searchRooms(String location, String budget, String roomType, Integer bedrooms, Integer bathrooms) {
+        if ((location == null || location.isBlank()) &&
+                (budget == null || budget.isBlank()) &&
+                (roomType == null || roomType.isBlank()) &&
+                bedrooms == null &&
+                bathrooms == null) {
+            return roomRepository.findAll();
+        }
+
+        // Parse budget if provided
+        Integer minBudget = null;
+        Integer maxBudget = null;
+        if (budget != null && !budget.isBlank()) {
+            String[] parts = budget.split("\\s*[-–]\\s*");
+            try {
+                minBudget = Integer.parseInt(parts[0].trim());
+                if (parts.length > 1) maxBudget = Integer.parseInt(parts[1].trim());
+            } catch (NumberFormatException e) {
+                // ignore invalid budget
+            }
+        }
+
+        // Filter dynamically in memory (or use Specification for DB-level filtering)
+        Integer finalMaxBudget = maxBudget;
+        Integer finalMinBudget = minBudget;
+        return roomRepository.findAll().stream()
+                .filter(room -> location == null || location.isBlank() ||
+                        room.getLocation().toLowerCase().contains(location.toLowerCase()))
+                .filter(room -> roomType == null || roomType.isBlank() ||
+                        room.getType().toString().equalsIgnoreCase(roomType))
+                .filter(room -> bedrooms == null || room.getBedrooms() == bedrooms)
+                .filter(room -> bathrooms == null || room.getBathrooms() == bathrooms)
+                .filter(room -> (finalMinBudget == null || room.getPrice() >= finalMinBudget) && (finalMaxBudget == null || room.getPrice() <= finalMaxBudget))
+                .toList();
     }
 }
 

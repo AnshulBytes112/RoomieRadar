@@ -65,6 +65,6 @@ public class Room {
     @JsonIgnoreProperties({"rooms","hibernateLazyInitializer", "handler"})
     private User postedBy;
     public enum RoomType {
-        Private, Shared, Studio
+        Private, Shared, Studio,Hostel
     }
 }

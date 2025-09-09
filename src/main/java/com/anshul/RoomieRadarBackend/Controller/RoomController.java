@@ -30,20 +30,20 @@ public class RoomController {
 
     @Autowired
     private RoomService roomService;
-//    @GetMapping("/{id}")
-//    private ResponseEntity<?> getRoomById(){
-//
-//    }
-//    @GetMapping("/search")
-//    public ResponseEntity<List<Room>> searchRooms(
-//            @RequestParam(required = false) String location,
-//            @RequestParam(required = false) String budget,
-//            @RequestParam(required = false) String roomType,
-//            @RequestParam(required = false) Integer bedrooms,
-//            @RequestParam(required = false) Integer bathrooms) {
-//
-//
-//    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<RoomDto>> searchRooms(
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String budget,
+            @RequestParam(required = false) String roomType,
+            @RequestParam(required = false) Integer bedrooms,
+            @RequestParam(required = false) Integer bathrooms) {
+        List<RoomDto> rooms = roomService.searchRooms(location, budget, roomType, bedrooms, bathrooms)
+                .stream()
+                .map(RoomMapper::toDto)
+                .toList();
+        return ResponseEntity.ok(rooms);
+    }
 
     @GetMapping
     private ResponseEntity<List<RoomDto>> getAllRooms(){
@@ -60,6 +60,11 @@ public class RoomController {
         User user=userService.findByUsername(username);
         RoomDto saved = roomService.createRoom(room, user);
         return ResponseEntity.ok(saved);
+
+    }
+    @GetMapping("/{id}")
+    private ResponseEntity<?> getRoomById(@PathVariable Long id) {
+        return ResponseEntity.ok(roomService.getRoomById(id));
 
     }
 //
