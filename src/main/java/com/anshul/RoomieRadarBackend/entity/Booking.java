@@ -27,7 +27,9 @@ public class Booking {
     private Room room;
 
     @Column(nullable = false)
-    private LocalDate joiningDate;
+    private LocalDate CheckInDate;
+
+    private String phone;
 
     @Column
     private String message;

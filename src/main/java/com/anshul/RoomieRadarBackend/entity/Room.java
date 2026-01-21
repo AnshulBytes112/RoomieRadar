@@ -1,5 +1,6 @@
 package com.anshul.RoomieRadarBackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -59,10 +60,15 @@ public class Room {
     private Boolean parking;
     private Boolean petFriendly;
     private Boolean furnished;
+    @Column
+    private String contactNumber;
+    @Column
+    private String contactEmail;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "posted_by_user_id", nullable = false)
     @JsonIgnoreProperties({"rooms","hibernateLazyInitializer", "handler"})
+    @JsonBackReference
     private User postedBy;
     public enum RoomType {
         Private, Shared, Studio,Hostel

@@ -1,6 +1,7 @@
 package com.anshul.RoomieRadarBackend.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -28,9 +29,11 @@ public class User {
     private String role;
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private RoomateProfile roomateProfile;
 
     @OneToMany(mappedBy = "postedBy")
+    @JsonManagedReference
     private List<Room> rooms;
 
     @OneToMany(mappedBy = "uploadedBy")

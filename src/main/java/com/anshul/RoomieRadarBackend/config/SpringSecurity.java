@@ -2,7 +2,6 @@ package com.anshul.RoomieRadarBackend.config;
 
 import com.anshul.RoomieRadarBackend.Service.UserDetailsServiceImpl;
 import com.anshul.RoomieRadarBackend.filter.JwtFilter;
-import jakarta.servlet.Filter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,8 +33,6 @@ public class SpringSecurity {
     private JwtFilter jwtfilter;
     @Autowired
     private UserDetailsServiceImpl userDetailService;
-    @Autowired
-    private UserDetailsService userDetailsService;
 
 
 //    @Autowired
@@ -48,16 +45,19 @@ public class SpringSecurity {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable()) // disable CSRF
-                .cors(withDefaults()) // enable CORS with default settings
+                .cors(cors -> cors.configurationSource(corsConfigurationSource())) // use our CORS config
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll() // Allow login, register, etc.
-                        .requestMatchers("/api/rooms/**","/api/rooms/public").permitAll() // Public room listings (optional)
-                        .requestMatchers("/api/favorites/**", "/api/bookings/**","/api/rooms/{id}").authenticated() // Require authentication
+                        .requestMatchers("/api/rooms/**","/api/rooms/public","/ws/**").permitAll() // Public room listings and WS handshake
+                        .requestMatchers("/ws/**", "/ws/info/**").permitAll() // WebSocket endpoints
+                        .requestMatchers("/chat.html").permitAll()
+                        .requestMatchers("/test-websocket").permitAll()
+                        .requestMatchers("/api/favorites/**", "/api/bookings/**","/api/rooms/**").authenticated() // Require authentication for these
                         .requestMatchers("/admin/**").hasRole("ADMIN") // Admin endpoints
-                        .anyRequest().authenticated() // All other endpoints require authentication
+                        .anyRequest().authenticated() // All other endpoints require authentication by default
                 );
         http.addFilterBefore(jwtfilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -70,11 +70,10 @@ public class SpringSecurity {
         return new BCryptPasswordEncoder();
     }
     @Bean
-    public AuthenticationProvider authenticationProvider(UserDetailsService userDetailsService,
-                                                         PasswordEncoder passwordEncoder) {
+    public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-        authProvider.setUserDetailsService(userDetailsService);
-        authProvider.setPasswordEncoder(passwordEncoder);
+        authProvider.setUserDetailsService(userDetailService);
+        authProvider.setPasswordEncoder(passwordEncoder());
         return authProvider;
     }
 
@@ -87,7 +86,7 @@ public class SpringSecurity {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:8080"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

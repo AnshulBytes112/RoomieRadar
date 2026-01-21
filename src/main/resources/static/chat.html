@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Roomie Radar Global Chat</title>
+    <!-- SockJS client -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <!-- STOMP UMD bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #chatBox { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; }
+        #chatBox p { margin: 5px 0; }
+        input, button { padding: 8px; margin: 5px 0; }
+        .timestamp { color: #888; font-size: 0.8em; margin-left: 5px; }
+        #status { color: #555; margin-bottom: 10px; }
+        @media (max-width: 600px) {
+          #chatBox { height: 200px; }
+          input, button { width: 100%; box-sizing: border-box; }
+        }
+    </style>
+</head>
+<body>
+
+<h2>Global Chat</h2>
+<div id="status">Connecting...</div>
+
+<label for="sender">Your Name:</label>
+<input type="text" id="sender" placeholder="Enter your name" aria-label="Your name" />
+<br/>
+
+<div id="chatBox" role="log" aria-live="polite"></div>
+
+<input type="text" id="message" placeholder="Type message here..." aria-label="Message input" />
+<button id="sendBtn" onclick="sendMessage()" disabled>Send</button>
+
+<script>
+    let stompClient = null;
+    let canSend = true;
+
+    function escapeHTML(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function updateStatus(status) {
+        document.getElementById('status').textContent = status;
+    }
+
+    function connect() {
+        // Check if StompJs is defined
+        if (typeof StompJs === 'undefined') {
+            console.error('StompJs is not defined. Ensure the STOMP library is loaded.');
+            updateStatus('Error: STOMP library failed to load');
+            alert('Failed to load STOMP library. Please refresh the page.');
+            return;
+        }
+
+        // Check if SockJS is defined
+        if (typeof SockJS === 'undefined') {
+            console.error('SockJS is not defined. Ensure the SockJS library is loaded.');
+            updateStatus('Error: SockJS library failed to load');
+            alert('Failed to load SockJS library. Please refresh the page.');
+            return;
+        }
+
+        // Use a factory function for Stomp.over
+        const wsUrl = 'http://localhost:8080/ws';
+        stompClient = StompJs.Stomp.over(() => new SockJS(wsUrl));
+        updateStatus('Connecting...');
+
+        // Enable auto-reconnection
+        stompClient.reconnectDelay = 5000; // Retry every 5 seconds
+
+        stompClient.connect({}, function () {
+            console.log('Connected to WebSocket!');
+            updateStatus('Connected');
+            document.getElementById("sendBtn").disabled = false;
+
+            stompClient.subscribe('/topic/messages', function (msg) {
+                const message = JSON.parse(msg.body);
+                showMessage(message.sender, message.content, message.timestamp);
+            });
+        }, function (error) {
+            console.error('WebSocket connection error:', error);
+            updateStatus('Disconnected');
+            document.getElementById("sendBtn").disabled = true;
+        });
+
+        // Handle WebSocket closure
+        stompClient.onWebSocketClose = function () {
+            updateStatus('Disconnected');
+            document.getElementById("sendBtn").disabled = true;
+        };
+    }
+
+    function sendMessage() {
+        if (!stompClient || !stompClient.connected) {
+            alert("WebSocket not connected. Please wait.");
+            return;
+        }
+        if (!canSend) return;
+
+        const sender = escapeHTML(document.getElementById("sender").value.trim());
+        const content = escapeHTML(document.getElementById("message").value.trim());
+
+        if (!sender || !content) {
+            alert("Please enter your name and a message.");
+            return;
+        }
+
+        if (sender.length > 50 || content.length > 500) {
+            alert("Name must be under 50 characters and message under 500 characters.");
+            return;
+        }
+
+        const message = { sender, content };
+        stompClient.send("/app/sendMessage", {}, JSON.stringify(message));
+        document.getElementById("message").value = '';
+        canSend = false;
+        document.getElementById("sendBtn").disabled = true;
+        setTimeout(() => {
+            canSend = true;
+            document.getElementById("sendBtn").disabled = false;
+        }, 2000); // 2-second cooldown
+    }
+
+    function showMessage(sender, content, timestamp) {
+        const chatBox = document.getElementById("chatBox");
+        const p = document.createElement('p');
+        const time = timestamp ? ` <span class="timestamp">(${formatTime(timestamp)})</span>` : '';
+        p.innerHTML = `<b>${escapeHTML(sender)}</b>: ${escapeHTML(content)}${time}`;
+        chatBox.appendChild(p);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function formatTime(ts) {
+        try {
+            const date = new Date(ts);
+            return date.toLocaleTimeString();
+        } catch (e) {
+            return ts;
+        }
+    }
+
+    // Handle Enter key for accessibility
+    document.getElementById("message").addEventListener("keypress", function (event) {
+        if (event.key === "Enter") {
+            sendMessage();
+        }
+    });
+
+    // Ensure scripts are loaded before connecting
+    window.onload = function () {
+        if (typeof SockJS === 'undefined' || typeof StompJs === 'undefined') {
+            console.error('Required libraries (SockJS or StompJs) not loaded.');
+            updateStatus('Error: Libraries failed to load');
+            alert('Failed to load required libraries. Please refresh the page.');
+        } else {
+            connect();
+        }
+    };
+</script>
+
+</body>
+</html>

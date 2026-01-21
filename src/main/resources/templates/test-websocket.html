@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Test</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+</head>
+<body>
+    <h2>WebSocket Test</h2>
+    <div id="status">Connecting...</div>
+    <div id="messages"></div>
+    <br>
+    <input type="text" id="receiver" placeholder="Receiver username">
+    <input type="text" id="message" placeholder="Message">
+    <button onclick="sendMessage()">Send</button>
+
+    <script>
+        const token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJub3ZhYSIsImlhdCI6MTc2NDg4ODEyNywiZXhwIjoxNzY0ODkxNzI3fQ.xKUNKvtwpTD3A60rMAv0fDie-ncnL7tgP7IwltyD7jo';
+        let stompClient = null;
+
+        function connect() {
+            console.log('Starting WebSocket connection...');
+            console.log('Token:', token);
+            
+            const wsUrl = 'http://localhost:8080/ws?token=' + token;
+            console.log('WebSocket URL:', wsUrl);
+            
+            const ws = new SockJS(wsUrl);
+            stompClient = Stomp.over(ws);
+            
+            // Enable debug logging
+            stompClient.debug = function(str) {
+                console.log('STOMP Debug:', str);
+            };
+            
+            stompClient.connect({}, function (frame) {
+                console.log('Connected: ' + frame);
+                document.getElementById('status').textContent = 'Connected';
+                
+                stompClient.subscribe('/user/queue/messages', function (message) {
+                    console.log('Received message:', message.body);
+                    const msg = JSON.parse(message.body);
+                    document.getElementById('messages').innerHTML += 
+                        '<p><b>' + msg.sender + '</b>: ' + msg.content + '</p>';
+                });
+            }, function (error) {
+                console.error('Connection error:', error);
+                document.getElementById('status').textContent = 'Error: ' + error;
+            });
+            
+            ws.onerror = function(e) {
+                console.error('WebSocket error:', e);
+                document.getElementById('status').textContent = 'WebSocket Error';
+            };
+            
+            ws.onclose = function(e) {
+                console.log('WebSocket closed:', e);
+                document.getElementById('status').textContent = 'Disconnected';
+            };
+        }
+
+        function sendMessage() {
+            if (!stompClient || !stompClient.connected) {
+                alert('Not connected');
+                return;
+            }
+            
+            const receiver = document.getElementById('receiver').value;
+            const content = document.getElementById('message').value;
+            
+            if (!receiver || !content) {
+                alert('Enter receiver and message');
+                return;
+            }
+            
+            const message = {
+                receiver: receiver,
+                content: content
+            };
+            
+            stompClient.send('/app/private-message', {}, JSON.stringify(message));
+            console.log('Sent message:', message);
+        }
+
+        // Auto connect on page load
+        window.onload = connect;
+    </script>
+</body>
+</html>

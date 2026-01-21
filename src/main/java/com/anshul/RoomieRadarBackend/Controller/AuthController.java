@@ -46,13 +46,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest user) {
+        log.info("Received login request for username: '{}', password: '{}'", user.getUsername(), user.getPassword());
         try {
             Authentication authenticate = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             user.getUsername(),
-                            user.getPassword()
-                    )
-            );
+                            user.getPassword()));
             String jwt = jwtUtil.generateToken(user.getUsername());
 
             // Get user details
@@ -66,10 +65,9 @@ public class AuthController {
             // Return response
             return ResponseEntity.ok(response);
 
-        }
-        catch (Exception e) {
-            log.error("Error during authentication", e);
-            return new ResponseEntity<>("Invalid credentials", HttpStatus.BAD_REQUEST);
+        } catch (Exception e) {
+            log.error("Authentication failed: ", e);
+            return new ResponseEntity<>("Invalid credentials: " + e.getMessage(), HttpStatus.UNAUTHORIZED);
         }
     }
 
@@ -113,11 +111,11 @@ public class AuthController {
         }
     }
 
-//    @PostMapping("/logout")
-//    public ResponseEntity<Void> logout() {
-//
-//    }
-//
+    // @PostMapping("/logout")
+    // public ResponseEntity<Void> logout() {
+    //
+    // }
+    //
     @GetMapping("/me")
     public ResponseEntity<User> getCurrentUser(Authentication authentication) {
         String username = authentication.getName();
@@ -131,7 +129,7 @@ public class AuthController {
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<User> updateProfile( @RequestBody User updatedUser) {
+    public ResponseEntity<User> updateProfile(@RequestBody User updatedUser) {
         String username = userRepository.findByUsername(updatedUser.getUsername()).orElse(null).getUsername();
         User existingUser = userRepository.findByUsername(username).orElse(null);
         if (existingUser != null) {

@@ -19,7 +19,6 @@ import java.util.List;
 @RestController
 @RequestMapping("api/rooms")
 
-
 public class RoomController {
     @Autowired
     private UserService userService;
@@ -46,35 +45,54 @@ public class RoomController {
     }
 
     @GetMapping
-    private ResponseEntity<List<RoomDto>> getAllRooms(){
+    private ResponseEntity<List<RoomDto>> getAllRooms() {
         List<RoomDto> rooms = roomService.getAllRooms()
                 .stream()
                 .map(RoomMapper::toDto) // map each Room to RoomDto
                 .toList();
         return ResponseEntity.ok(rooms);
     }
-//
+
+    //
     @PostMapping
-    private ResponseEntity<?> createRoom(@RequestBody Room room,Authentication authentication){
+    private ResponseEntity<?> createRoom(@RequestBody Room room, Authentication authentication) {
         String username = authentication.getName();
-        User user=userService.findByUsername(username);
+        User user = userService.findByUsername(username);
         RoomDto saved = roomService.createRoom(room, user);
         return ResponseEntity.ok(saved);
 
     }
+
     @GetMapping("/{id}")
     private ResponseEntity<?> getRoomById(@PathVariable Long id) {
         return ResponseEntity.ok(roomService.getRoomById(id));
 
     }
-//
-//    @PutMapping("/{id}")
-//    private ResponseEntity<?> updateRoom(){
-//
-//    }
-//
+
+    @GetMapping("/my-listings")
+    public ResponseEntity<List<RoomDto>> getMyListings(Authentication authentication) {
+        String username = authentication.getName();
+        List<RoomDto> rooms = roomService.getRoomsByUser(username)
+                .stream()
+                .map(RoomMapper::toDto)
+                .toList();
+        return ResponseEntity.ok(rooms);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateRoom(@PathVariable Long id, @RequestBody Room room, Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            RoomDto updatedRoom = roomService.updateRoom(id, room, username);
+            return ResponseEntity.ok(updatedRoom);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        }
+    }
+
+    //
     @DeleteMapping("/{id}")
-    private ResponseEntity<?> deleteRoom(@PathVariable Long id,Authentication authentication){
+    private ResponseEntity<?> deleteRoom(@PathVariable Long id, Authentication authentication) {
         String username = authentication.getName();
 
         boolean deleted = roomService.deleteRoom(id, username);

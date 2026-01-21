@@ -20,6 +20,7 @@ public class RoomService {
     private UserRepository userRepository;
     @Autowired
     private RoomRepository roomRepository;
+
     public RoomDto createRoom(Room room, User user) {
         try {
             Room room1 = new Room();
@@ -36,26 +37,28 @@ public class RoomService {
             room1.setDescription(room.getDescription());
             room1.setAmenities(room.getAmenities());
             room1.setAvailaibleFrom(room.getAvailaibleFrom());
-            room1.setDeposit(room.getDeposit());           // ← This was missing!
-            room1.setMaintenance(room.getMaintenance());   // ← This was missing!
+            room1.setDeposit(room.getDeposit());
+            room1.setMaintenance(room.getMaintenance());
             room1.setParking(room.getParking());
             room1.setPetFriendly(room.getPetFriendly());
             room1.setFurnished(room.getFurnished());
-            // ✅ associate logged-in user
+            room1.setContactNumber(room.getContactNumber());
+            room1.setContactEmail(room.getContactEmail());
+
             room1.setPostedBy(user);
 
-            // ✅ save to DB
             Room savedRoom = roomRepository.save(room1);
 
-            // ✅ convert entity → DTO
             return RoomMapper.toDto(savedRoom);
 
         } catch (Exception e) {
             throw new RuntimeException("Error creating room", e);
         }
     }
+
     public List<Room> getAllRooms() {
-        return roomRepository.findAll();     }
+        return roomRepository.findAll();
+    }
 
     public void savenewentry(Room newRoom) {
         roomRepository.save(newRoom);
@@ -81,7 +84,6 @@ public class RoomService {
             userRepository.save(user); // Only needed if cascade is not configured
         }
 
-        // Delete the room
         roomRepository.delete(room);
 
         return true;
@@ -92,7 +94,8 @@ public class RoomService {
         return roomOpt.orElse(null);
     }
 
-    public List<Room> searchRooms(String location, String budget, String roomType, Integer bedrooms, Integer bathrooms) {
+    public List<Room> searchRooms(String location, String budget, String roomType, Integer bedrooms,
+            Integer bathrooms) {
         if ((location == null || location.isBlank()) &&
                 (budget == null || budget.isBlank()) &&
                 (roomType == null || roomType.isBlank()) &&
@@ -108,7 +111,8 @@ public class RoomService {
             String[] parts = budget.split("\\s*[-–]\\s*");
             try {
                 minBudget = Integer.parseInt(parts[0].trim());
-                if (parts.length > 1) maxBudget = Integer.parseInt(parts[1].trim());
+                if (parts.length > 1)
+                    maxBudget = Integer.parseInt(parts[1].trim());
             } catch (NumberFormatException e) {
                 // ignore invalid budget
             }
@@ -124,10 +128,51 @@ public class RoomService {
                         room.getType().toString().equalsIgnoreCase(roomType))
                 .filter(room -> bedrooms == null || room.getBedrooms() == bedrooms)
                 .filter(room -> bathrooms == null || room.getBathrooms() == bathrooms)
-                .filter(room -> (finalMinBudget == null || room.getPrice() >= finalMinBudget) && (finalMaxBudget == null || room.getPrice() <= finalMaxBudget))
+                .filter(room -> (finalMinBudget == null || room.getPrice() >= finalMinBudget)
+                        && (finalMaxBudget == null || room.getPrice() <= finalMaxBudget))
                 .toList();
     }
+
+    public List<Room> getRoomsByUser(String username) {
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+        return roomRepository.findByPostedBy(user);
+    }
+
+    public RoomDto updateRoom(Long id, Room roomDetails, String username) {
+        Room room = roomRepository.findById(id).orElseThrow(() -> new RuntimeException("Room not found"));
+
+        if (!room.getPostedBy().getUsername().equals(username)) {
+            throw new RuntimeException("Unauthorized: You do not own this room listing");
+        }
+
+        room.setTitle(roomDetails.getTitle());
+        room.setLocation(roomDetails.getLocation());
+        room.setPrice(roomDetails.getPrice());
+        room.setArea(roomDetails.getArea());
+        room.setBedrooms(roomDetails.getBedrooms());
+        room.setBathrooms(roomDetails.getBathrooms());
+        room.setType(roomDetails.getType());
+        room.setDescription(roomDetails.getDescription());
+        room.setAmenities(roomDetails.getAmenities());
+        room.setAvailaibleFrom(roomDetails.getAvailaibleFrom());
+        room.setDeposit(roomDetails.getDeposit());
+        room.setMaintenance(roomDetails.getMaintenance());
+        room.setParking(roomDetails.getParking());
+        room.setPetFriendly(roomDetails.getPetFriendly());
+        room.setFurnished(roomDetails.getFurnished());
+        room.setContactNumber(roomDetails.getContactNumber());
+        room.setContactEmail(roomDetails.getContactEmail());
+
+        // Update images if provided (optional logic depending on requirements, here
+        // replacing)
+        if (roomDetails.getImages() != null) {
+            room.setImages(roomDetails.getImages());
+        }
+        if (roomDetails.getTags() != null) {
+            room.setTags(roomDetails.getTags());
+        }
+
+        Room updatedRoom = roomRepository.save(room);
+        return RoomMapper.toDto(updatedRoom);
+    }
 }
-
-
-

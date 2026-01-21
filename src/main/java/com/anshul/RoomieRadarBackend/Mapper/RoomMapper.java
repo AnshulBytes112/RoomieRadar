@@ -24,6 +24,8 @@ public class RoomMapper {
                 room.getPetFriendly(),
                 room.getFurnished(),
                 room.getType().toString(),
+                room.getContactNumber(),
+                room.getContactEmail(),
                 new RoomDto.PostedByDto(
                         room.getPostedBy().getId(),
                         room.getPostedBy().getName(),

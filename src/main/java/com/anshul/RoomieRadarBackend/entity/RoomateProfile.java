@@ -1,5 +1,6 @@
 package com.anshul.RoomieRadarBackend.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -51,7 +52,7 @@ public class RoomateProfile {
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnoreProperties({"roomateProfile", "rooms"})
+    @JsonBackReference
     private User user;
 
 }

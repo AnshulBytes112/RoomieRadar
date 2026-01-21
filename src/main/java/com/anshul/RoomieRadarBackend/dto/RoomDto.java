@@ -28,7 +28,8 @@ public class RoomDto {
     private Boolean petFriendly;
     private Boolean furnished;
     private String type;
-
+    private String contactNumber;
+    private String contactEmail;
     private PostedByDto postedBy;
 
     @Data
