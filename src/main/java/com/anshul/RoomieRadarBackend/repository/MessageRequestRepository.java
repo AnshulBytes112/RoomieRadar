@@ -9,5 +9,8 @@ import java.util.Optional;
 
 public interface MessageRequestRepository extends JpaRepository<MessageRequest, Long> {
     List<MessageRequest> findByToUserAndStatus(User toUser, MessageRequest.RequestStatus status);
+
     Optional<MessageRequest> findByFromUserAndToUserAndStatus(User from, User to, MessageRequest.RequestStatus status);
+
+    List<MessageRequest> findByFromUserAndStatus(User user, MessageRequest.RequestStatus requestStatus);
 }

@@ -1,6 +1,5 @@
 package com.anshul.RoomieRadarBackend.dto;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -9,6 +8,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RoomateProfileDTO {
+    private Long id;
+    private Long userId;
     private String name;
     private int age;
     private String occupation;

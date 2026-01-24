@@ -17,6 +17,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -34,33 +35,34 @@ public class SpringSecurity {
     @Autowired
     private UserDetailsServiceImpl userDetailService;
 
+    // @Autowired
+    // private UserService userService;
 
-//    @Autowired
-//    private UserService userService;
-
-//    @Autowired
-//    private JwtFilter jwtFilter;
+    // @Autowired
+    // private JwtFilter jwtFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf.disable()) // disable CSRF
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // use our CORS config
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**").permitAll() // Allow login, register, etc.
-                        .requestMatchers("/api/rooms/**","/api/rooms/public","/ws/**").permitAll() // Public room listings and WS handshake
-                        .requestMatchers("/ws/**", "/ws/info/**").permitAll() // WebSocket endpoints
-                        .requestMatchers("/chat.html").permitAll()
-                        .requestMatchers("/test-websocket").permitAll()
-                        .requestMatchers("/api/favorites/**", "/api/bookings/**","/api/rooms/**").authenticated() // Require authentication for these
-                        .requestMatchers("/admin/**").hasRole("ADMIN") // Admin endpoints
-                        .anyRequest().authenticated() // All other endpoints require authentication by default
-                );
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/error").permitAll()
+                        .requestMatchers("/api/message-requests/**", "/api/conversations/**").authenticated()
+                        .requestMatchers("/api/rooms/**", "/api/rooms/public", "/ws/**").permitAll()
+                        .requestMatchers("/api/favorites/**", "/api/bookings/**").authenticated()
+                        .requestMatchers("/chat.html", "/test-websocket").permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated())
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            System.out.println("DEBUG: Unauthenticated request to " + request.getRequestURI()
+                                    + " - returning 401");
+                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+                        }));
         http.addFilterBefore(jwtfilter, UsernamePasswordAuthenticationFilter.class);
-
 
         return http.build();
     }
@@ -69,6 +71,7 @@ public class SpringSecurity {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
+
     @Bean
     public AuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
@@ -77,12 +80,12 @@ public class SpringSecurity {
         return authProvider;
     }
 
-
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration authenticationConfiguration) throws Exception {
         return authenticationConfiguration.getAuthenticationManager();
     }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

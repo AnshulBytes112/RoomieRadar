@@ -1,13 +1,11 @@
 package com.anshul.RoomieRadarBackend.Service;
 
-
 import com.anshul.RoomieRadarBackend.Model.Conversation;
 import com.anshul.RoomieRadarBackend.Model.Message;
 import com.anshul.RoomieRadarBackend.Model.MessageRequest;
 import com.anshul.RoomieRadarBackend.dto.CreateRequestDTO;
 import com.anshul.RoomieRadarBackend.dto.ResponseDTO;
 import com.anshul.RoomieRadarBackend.dto.SendMessageDTO;
-import com.anshul.RoomieRadarBackend.entity.ChatRequest;
 import com.anshul.RoomieRadarBackend.entity.User;
 import com.anshul.RoomieRadarBackend.repository.ConversationRepository;
 import com.anshul.RoomieRadarBackend.repository.MessageRepository;
@@ -48,7 +46,8 @@ public class ChatService {
         // prevent duplicate pending
         var existing = reqRepo.findByFromUserAndToUserAndStatus(fromUser, toUser, MessageRequest.RequestStatus.PENDING);
         if (existing.isPresent()) {
-            return null;}
+            return null;
+        }
         // create request
         MessageRequest request = new MessageRequest();
         request.setFromUser(fromUser);
@@ -59,7 +58,9 @@ public class ChatService {
 
         return reqRepo.save(request);
     }
-    //Transactional annotation helps in completeing a process if it fails in between the whole process reverts back
+
+    // Transactional annotation helps in completeing a process if it fails in
+    // between the whole process reverts back
     @Transactional
     public MessageRequest createRequest(Long fromUserId, CreateRequestDTO dto) {
         User from = userRepo.findById(fromUserId).orElseThrow(() -> new EntityNotFoundException("From user"));
@@ -71,9 +72,10 @@ public class ChatService {
 
         // prevent duplicate pending
         var existing = reqRepo.findByFromUserAndToUserAndStatus(from, to, MessageRequest.RequestStatus.PENDING);
-        if (existing.isPresent()) throw new IllegalStateException("Request already pending");
+        if (existing.isPresent())
+            throw new IllegalStateException("Request already pending");
 
-        //saves a message request sent by user
+        // saves a message request sent by user
         MessageRequest mr = new MessageRequest();
         mr.setFromUser(from);
         mr.setToUser(to);
@@ -83,15 +85,19 @@ public class ChatService {
 
     @Transactional
     public Conversation respondToRequest(Long toUserId, Long requestId, ResponseDTO dto) {
-        MessageRequest req = reqRepo.findById(requestId).orElseThrow(() -> new EntityNotFoundException("Request not found"));
-        if (!req.getToUser().getId().equals(toUserId)) throw new AccessDeniedException("Not allowed");
-        if (req.getStatus() != MessageRequest.RequestStatus.PENDING) throw new IllegalStateException("Already responded");
+        MessageRequest req = reqRepo.findById(requestId)
+                .orElseThrow(() -> new EntityNotFoundException("Request not found"));
+        if (!req.getToUser().getId().equals(toUserId))
+            throw new AccessDeniedException("Not allowed");
+        if (req.getStatus() != MessageRequest.RequestStatus.PENDING)
+            throw new IllegalStateException("Already responded");
 
         if (dto.isAccept()) {
             req.setStatus(MessageRequest.RequestStatus.ACCEPTED);
             req.setRespondedAt(Instant.now());
             reqRepo.save(req);
-            //now that request is accepted create a conversation between the two users if not already present
+            // now that request is accepted create a conversation between the two users if
+            // not already present
             // find or create conversation
             Long a = req.getFromUser().getId();
             Long b = req.getToUser().getId();
@@ -110,8 +116,7 @@ public class ChatService {
             // Notify the requester in real-time (if connected)
             messagingTemplate.convertAndSend(
                     "/topic/requests/" + req.getFromUser().getId(),
-                    Map.of("type", "REQUEST_ACCEPTED", "conversationId", conv.getId())
-            );
+                    Map.of("type", "REQUEST_ACCEPTED", "conversationId", conv.getId()));
 
             return conv;
         } else {
@@ -121,16 +126,17 @@ public class ChatService {
             // optionally notify
             messagingTemplate.convertAndSend(
                     "/topic/requests/" + req.getFromUser().getId(),
-                    Map.of("type", "REQUEST_REJECTED", "requestId", req.getId())
-            );
+                    Map.of("type", "REQUEST_REJECTED", "requestId", req.getId()));
             return null;
         }
     }
 
     @Transactional
     public Message sendMessage(Long senderId, Long conversationId, SendMessageDTO dto) {
-        Conversation conv = convRepo.findById(conversationId).orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
-        if (!conv.hasParticipant(senderId)) throw new AccessDeniedException("Not a participant");
+        Conversation conv = convRepo.findById(conversationId)
+                .orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
+        if (!conv.hasParticipant(senderId))
+            throw new AccessDeniedException("Not a participant");
 
         User sender = userRepo.findById(senderId).orElseThrow(() -> new EntityNotFoundException("Sender not found"));
 
@@ -147,8 +153,8 @@ public class ChatService {
         String topic = "/topic/conversations." + conv.getId();
         messagingTemplate.convertAndSend(topic, Map.of(
                 "type", "NEW_MESSAGE",
-                "message", Map.of("id", m.getId(), "senderId", sender.getId(), "content", m.getContent(), "createdAt", m.getCreatedAt())
-        ));
+                "message", Map.of("id", m.getId(), "senderId", sender.getId(), "content", m.getContent(), "createdAt",
+                        m.getCreatedAt())));
         return m;
     }
 
@@ -165,16 +171,19 @@ public class ChatService {
 
     @Transactional(readOnly = true)
     public List<Message> getMessages(Long conversationId, Long userId) {
-        Conversation conv = convRepo.findById(conversationId).orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
-        if (!conv.hasParticipant(userId)) throw new AccessDeniedException("Not a participant");
+        Conversation conv = convRepo.findById(conversationId)
+                .orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
+        if (!conv.hasParticipant(userId))
+            throw new AccessDeniedException("Not a participant");
         return msgRepo.findByConversationOrderByCreatedAtAsc(conv);
     }
 
-    public     List<MessageRequest>  getPendingRequestsForUsername(String username) {
+    public List<MessageRequest> getPendingRequestsForUsername(String username) {
         var user = userRepo.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found: " + username));
 
-//        return reqRepo.findByToUserAndStatus(user, MessageRequest.RequestStatus.PENDING);
+        // return reqRepo.findByToUserAndStatus(user,
+        // MessageRequest.RequestStatus.PENDING);
         return reqRepo.findByToUserAndStatus(user, MessageRequest.RequestStatus.PENDING);
     }
 
@@ -185,18 +194,19 @@ public class ChatService {
         return respondToRequest(user.getId(), id, dto);
     }
 
-        /**
-         * Return true if a conversation between the two usernames exists (i.e. the message
-         * request was accepted and a private conversation was created).
-         */
-        public boolean canPrivateChat(String senderUsername, String receiverUsername) {
+    /**
+     * Return true if a conversation between the two usernames exists (i.e. the
+     * message
+     * request was accepted and a private conversation was created).
+     */
+    public boolean canPrivateChat(String senderUsername, String receiverUsername) {
         var sender = userRepo.findByUsername(senderUsername)
-            .orElseThrow(() -> new RuntimeException("User not found: " + senderUsername));
+                .orElseThrow(() -> new RuntimeException("User not found: " + senderUsername));
         var receiver = userRepo.findByUsername(receiverUsername)
-            .orElseThrow(() -> new RuntimeException("User not found: " + receiverUsername));
+                .orElseThrow(() -> new RuntimeException("User not found: " + receiverUsername));
 
         return convRepo.findBetweenUsers(sender.getId(), receiver.getId()).isPresent();
-        }
+    }
 
     public List<Conversation> getConversationsForUsername(String username) {
         var user = userRepo.findByUsername(username)
@@ -218,5 +228,11 @@ public class ChatService {
 
         return sendMessage(user.getId(), id, dto);
     }
-}
 
+    public List<MessageRequest> getSentRequestsForUsername(String username) {
+        var user = userRepo.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+
+        return reqRepo.findByFromUserAndStatus(user, MessageRequest.RequestStatus.PENDING);
+    }
+}

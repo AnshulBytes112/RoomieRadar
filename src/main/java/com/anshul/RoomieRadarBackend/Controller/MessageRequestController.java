@@ -3,12 +3,10 @@ package com.anshul.RoomieRadarBackend.Controller;
 import com.anshul.RoomieRadarBackend.Service.ChatService;
 import com.anshul.RoomieRadarBackend.dto.CreateRequestDTO;
 import com.anshul.RoomieRadarBackend.dto.ResponseDTO;
-import com.sun.security.auth.UserPrincipal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,18 +22,18 @@ public class MessageRequestController {
     private final ChatService chatService;
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody CreateRequestDTO dto, @AuthenticationPrincipal org.springframework.security.core.userdetails.User user) {
-        String username = user.getUsername(); // current logged-in user
+    public ResponseEntity<?> create(@RequestBody CreateRequestDTO dto, Authentication authentication) {
+        String username = authentication.getName(); // current logged-in user
         var req = chatService.createRequestByUsername(username, dto);
-        if(req == null) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Request already exists or user not found"));
+        if (req == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Request already exists or user not found"));
         }
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", req.getId()));
     }
 
     @GetMapping("/inbox")
-    public ResponseEntity<?> inbox(@AuthenticationPrincipal UserPrincipal principal) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    public ResponseEntity<?> inbox(Authentication authentication) {
         String username = authentication.getName(); // currently logged-in user
 
         var list = chatService.getPendingRequestsForUsername(username);
@@ -51,13 +49,12 @@ public class MessageRequestController {
             return map;
         }).collect(Collectors.toList());
 
-
         return ResponseEntity.ok(view);
     }
 
     @PostMapping("/{id}/respond")
     public ResponseEntity<?> respond(@PathVariable Long id,
-                                     @RequestBody ResponseDTO dto) {
+            @RequestBody ResponseDTO dto) {
         // Get current logged-in user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String username = authentication.getName();
@@ -73,5 +70,23 @@ public class MessageRequestController {
         }
     }
 
-}
+    @GetMapping("/sent")
+    public ResponseEntity<?> getsentrequests(Authentication authentication) {
+        String username = authentication.getName(); // currently logged-in user
 
+        var list = chatService.getSentRequestsForUsername(username);
+
+        // map to DTOs or minimal view
+        var view = list.stream().map(r -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", r.getId());
+            map.put("toUserId", r.getToUser() != null ? r.getToUser().getId() : null);
+            map.put("toUsername", r.getToUser() != null ? r.getToUser().getUsername() : null);
+            map.put("message", r.getMessage());
+            map.put("status", r.getStatus());
+            map.put("createdAt", r.getCreatedAt());
+            return map;
+        }).toList();
+        return ResponseEntity.ok(view);
+    }
+}

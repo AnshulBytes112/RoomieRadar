@@ -3,13 +3,12 @@ package com.anshul.RoomieRadarBackend.Controller;
 import com.anshul.RoomieRadarBackend.entity.User;
 import com.anshul.RoomieRadarBackend.Service.ChatService;
 import com.anshul.RoomieRadarBackend.dto.SendMessageDTO;
-import com.sun.security.auth.UserPrincipal;
+import com.anshul.RoomieRadarBackend.repository.MessageRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -23,36 +22,46 @@ import java.util.stream.Collectors;
 public class ConversationController {
     private final ChatService chatService;
 
+    @Autowired
+    private MessageRepository messageRepository;
+
     @GetMapping
-    public ResponseEntity<?> list() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName(); // currently logged-in user
+    public ResponseEntity<?> list(Authentication authentication) {
+        String username = authentication.getName();
 
         var convos = chatService.getConversationsForUsername(username);
-        var dto = convos.stream()
-                .map(c -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("id", c.getId());
+        return ResponseEntity.ok(convos.stream().map(c -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", c.getId());
+            map.put("lastMessageAt", c.getLastMessageAt());
 
-                    // create a mutable list of participant IDs
-                    var participantIds = c.getParticipants()
-                            .stream()
-                            .map(User::getId)
-                            .collect(Collectors.toList());
+            // Participant Details
+            User otherUser = c.getParticipants().stream()
+                    .filter(u -> !u.getUsername().equals(username))
+                    .findFirst()
+                    .orElse(null);
 
-                    map.put("participantIds", participantIds);
-                    map.put("lastMessageAt", c.getLastMessageAt());
-                    return map;
-                })
-                .collect(Collectors.toList());
+            if (otherUser != null) {
+                var rp = otherUser.getRoomateProfile();
+                map.put("otherParticipant", Map.of(
+                        "id", otherUser.getId(),
+                        "name", (rp != null && rp.getName() != null) ? rp.getName() : otherUser.getName(),
+                        "avatar", (rp != null && rp.getAvatar() != null) ? rp.getAvatar() : ""));
+            }
 
-        return ResponseEntity.ok(dto);
+            // Latest Message Snippet
+            messageRepository.findFirstByConversationOrderByCreatedAtDesc(c).ifPresent(m -> {
+                map.put("lastMessage", Map.of(
+                        "content", m.getContent(),
+                        "createdAt", m.getCreatedAt()));
+            });
+
+            return map;
+        }).collect(Collectors.toList()));
     }
 
-
     @GetMapping("/{id}/messages")
-    public ResponseEntity<?> messages(@PathVariable Long id, @AuthenticationPrincipal UserPrincipal p) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    public ResponseEntity<?> messages(@PathVariable Long id, Authentication authentication) {
         String username = authentication.getName();
         var msgs = chatService.getMessagesForUsername(id, username);
         var out = msgs.stream()
@@ -69,12 +78,11 @@ public class ConversationController {
     }
 
     @PostMapping("/{id}/messages")
-    public ResponseEntity<?> sendMessage(@PathVariable Long id, @RequestBody SendMessageDTO dto, @AuthenticationPrincipal UserPrincipal p) {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    public ResponseEntity<?> sendMessage(@PathVariable Long id, @RequestBody SendMessageDTO dto,
+            Authentication authentication) {
         String username = authentication.getName();
 
         var m = chatService.sendMessageByUsername(username, id, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", m.getId()));
     }
 }
-
