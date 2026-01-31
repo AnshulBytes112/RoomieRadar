@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 @Table(name = "bookings")
 @Entity
 @Data
@@ -26,8 +27,11 @@ public class Booking {
     @JsonIgnoreProperties({"postedBy"})
     private Room room;
 
-    @Column(nullable = false)
+    @Column(name = "joining_date", nullable = false)
     private LocalDate CheckInDate;
+
+    @Column(name = "check_in_date", nullable = false)
+    private LocalDate checkInDate;
 
     private String phone;
 
@@ -38,7 +42,17 @@ public class Booking {
     @Column(nullable = false)
     private BookingStatus status;
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+
+
     public enum BookingStatus {
-        PENDING, CONFIRMED, CANCELLED
+        PENDING, CONFIRMED, CANCELLED,SCHEDULE_INSPECTION
+    }
+
+    // Explicit setter for checkInDate to avoid naming conflicts
+    public void setCheckInDateField(LocalDate checkInDate) {
+        this.checkInDate = checkInDate;
     }
 }

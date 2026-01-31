@@ -49,6 +49,8 @@ public class RoomateProfile {
     @Column
     private String avatar;
 
+    @Column
+    private String gender;
 
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

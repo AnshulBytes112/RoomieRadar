@@ -8,10 +8,17 @@ import java.time.LocalDate;
 
 @Data
 public class BookingRequest {
-    private Long roomId;
     @NotNull
-        private LocalDate checkInDate;
-    private String message;
+    private String name;
+
+    private String email;
 
     private String phone;
+
+    private Long roomId;
+    @NotNull
+    private LocalDate checkInDate;
+    private String message;
+    
+    private Boolean sendEmailConfirmation = true; // Default to true
 }

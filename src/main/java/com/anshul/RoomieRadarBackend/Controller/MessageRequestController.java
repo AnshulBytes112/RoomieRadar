@@ -44,6 +44,7 @@ public class MessageRequestController {
             map.put("id", r.getId());
             map.put("fromUserId", r.getFromUser() != null ? r.getFromUser().getId() : null);
             map.put("fromUsername", r.getFromUser() != null ? r.getFromUser().getUsername() : null);
+            map.put("fromName", r.getFromUser() != null ? r.getFromUser().getName() : null);
             map.put("message", r.getMessage());
             map.put("createdAt", r.getCreatedAt());
             return map;
@@ -82,6 +83,7 @@ public class MessageRequestController {
             map.put("id", r.getId());
             map.put("toUserId", r.getToUser() != null ? r.getToUser().getId() : null);
             map.put("toUsername", r.getToUser() != null ? r.getToUser().getUsername() : null);
+            map.put("toName", r.getToUser() != null ? r.getToUser().getName() : null);
             map.put("message", r.getMessage());
             map.put("status", r.getStatus());
             map.put("createdAt", r.getCreatedAt());

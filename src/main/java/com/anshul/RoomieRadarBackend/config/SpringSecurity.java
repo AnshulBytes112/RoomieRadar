@@ -52,6 +52,7 @@ public class SpringSecurity {
                         .requestMatchers("/api/auth/**", "/error").permitAll()
                         .requestMatchers("/api/message-requests/**", "/api/conversations/**").authenticated()
                         .requestMatchers("/api/rooms/**", "/api/rooms/public", "/ws/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/api/favorites/**", "/api/bookings/**").authenticated()
                         .requestMatchers("/chat.html", "/test-websocket").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
@@ -89,7 +90,9 @@ public class SpringSecurity {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173", "http://localhost:8080"));
+        // configuration.setAllowedOrigins(Arrays.asList("http://localhost:5173",
+        // "http://localhost:8080"));
+        configuration.setAllowedOriginPatterns(List.of("*")); // Allow all origins for dev
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);

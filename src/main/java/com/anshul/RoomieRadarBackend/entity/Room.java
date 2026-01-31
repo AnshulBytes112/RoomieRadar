@@ -22,13 +22,13 @@ public class Room {
     @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 500)
     private String location;
 
     @Column(nullable = false)
     private int price;
 
-    @Column
+    @Column(length = 200)
     private String area;
 
     @Column(nullable = false)
@@ -39,30 +39,36 @@ public class Room {
 
     @ElementCollection
     @CollectionTable(name = "room_images", joinColumns = @JoinColumn(name = "room_id"))
-    @Column(name = "image_url")
+    @Column(name = "image_url", columnDefinition = "TEXT")
     private List<String> images;
 
     @ElementCollection
     @CollectionTable(name = "room_tags", joinColumns = @JoinColumn(name = "room_id"))
-    @Column(name = "tag")
+    @Column(name = "tag", length = 100)
     private List<String> tags;
 
     @Enumerated(EnumType.STRING)
     private RoomType type; // "Private", "Shared", "Studio"
 
+    @Column(length = 2000)
     private String description;
     @ElementCollection
+    @CollectionTable(name = "room_amenities", joinColumns = @JoinColumn(name = "room_id"))
+    @Column(name = "amenity", length = 200)
     private List<String> amenities;
 
+    @Column(length = 100)
     private String availaibleFrom;
+    @Column(length = 50)
     private String deposit;
+    @Column(length = 50)
     private String maintenance;
     private Boolean parking;
     private Boolean petFriendly;
     private Boolean furnished;
-    @Column
+    @Column(length = 20)
     private String contactNumber;
-    @Column
+    @Column(length = 255)
     private String contactEmail;
 
     @ManyToOne(fetch = FetchType.LAZY)

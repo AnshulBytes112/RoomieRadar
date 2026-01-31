@@ -5,13 +5,15 @@ import com.anshul.RoomieRadarBackend.dto.RoomateProfileDTO;
 import com.anshul.RoomieRadarBackend.entity.RoomateProfile;
 import com.anshul.RoomieRadarBackend.entity.User;
 import com.anshul.RoomieRadarBackend.repository.RoommateProfileRepository;
-import com.anshul.RoomieRadarBackend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
+import com.anshul.RoomieRadarBackend.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,10 +52,35 @@ public class RoommateController {
         }
     }
 
-    @GetMapping
-    private ResponseEntity<List<RoomateProfileDTO>> getAllRoommates() {
+    @GetMapping("/search")
+    private ResponseEntity<?> searchRoommates(
+            @RequestParam(required = false) String ageRange,
+            @RequestParam(required = false) String lifestyle,
+            @RequestParam(required = false) String budget,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String occupation,
+            @RequestParam(required = false) String gender,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
         try {
-            return ResponseEntity.ok().body(roommateService.getAllRoommates());
+            Pageable pageable = PageRequest.of(page, size);
+            Page<RoomateProfileDTO> profiles = roommateService.searchRoommates(ageRange, lifestyle, budget, location,
+                    occupation, gender, pageable);
+            return ResponseEntity.ok().body(profiles);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage(), "trace", e.getStackTrace()[0].toString()));
+        }
+    }
+
+    @GetMapping
+    private ResponseEntity<Page<RoomateProfileDTO>> getAllRoommates(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        try {
+            Pageable pageable = PageRequest.of(page, size);
+            return ResponseEntity.ok().body(roommateService.getAllRoommates(pageable));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }

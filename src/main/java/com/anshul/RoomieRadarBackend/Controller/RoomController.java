@@ -10,10 +10,11 @@ import com.anshul.RoomieRadarBackend.entity.User;
 import com.anshul.RoomieRadarBackend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
-
+import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 
 @RestController
@@ -23,33 +24,33 @@ public class RoomController {
     @Autowired
     private UserService userService;
     @Autowired
-    private UserRepository userRepository;
-    @Autowired
     UserDetailsServiceImpl userDetailsServiceImpl;
 
     @Autowired
     private RoomService roomService;
 
     @GetMapping("/search")
-    public ResponseEntity<List<RoomDto>> searchRooms(
+    public ResponseEntity<Page<RoomDto>> searchRooms(
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String budget,
             @RequestParam(required = false) String roomType,
             @RequestParam(required = false) Integer bedrooms,
-            @RequestParam(required = false) Integer bathrooms) {
-        List<RoomDto> rooms = roomService.searchRooms(location, budget, roomType, bedrooms, bathrooms)
-                .stream()
-                .map(RoomMapper::toDto)
-                .toList();
+            @RequestParam(required = false) Integer bathrooms,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<RoomDto> rooms = roomService.searchRooms(location, budget, roomType, bedrooms, bathrooms, pageable)
+                .map(RoomMapper::toDto);
         return ResponseEntity.ok(rooms);
     }
 
     @GetMapping
-    private ResponseEntity<List<RoomDto>> getAllRooms() {
-        List<RoomDto> rooms = roomService.getAllRooms()
-                .stream()
-                .map(RoomMapper::toDto) // map each Room to RoomDto
-                .toList();
+    private ResponseEntity<Page<RoomDto>> getAllRooms(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<RoomDto> rooms = roomService.getAllRooms(pageable)
+                .map(RoomMapper::toDto);
         return ResponseEntity.ok(rooms);
     }
 

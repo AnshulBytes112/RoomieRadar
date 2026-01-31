@@ -23,9 +23,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 @Slf4j
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -75,12 +76,11 @@ public class AuthController {
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
 
         try {
-            // ✅ Check if email already exists
             if (userRepository.existsByEmail(request.getEmail())) {
                 return new ResponseEntity<>("Email already exists", HttpStatus.BAD_REQUEST);
             }
 
-            // ✅ Check if username already exists
+            // Check if username already exists
             if (userRepository.existsByUsername(request.getUsername())) {
                 return new ResponseEntity<>("Username already exists", HttpStatus.BAD_REQUEST);
             }
@@ -130,7 +130,7 @@ public class AuthController {
 
     @PutMapping("/profile")
     public ResponseEntity<User> updateProfile(@RequestBody User updatedUser) {
-        String username = userRepository.findByUsername(updatedUser.getUsername()).orElse(null).getUsername();
+        String username = Objects.requireNonNull(userRepository.findByUsername(updatedUser.getUsername()).orElse(null)).getUsername();
         User existingUser = userRepository.findByUsername(username).orElse(null);
         if (existingUser != null) {
             existingUser.setName(updatedUser.getName());
