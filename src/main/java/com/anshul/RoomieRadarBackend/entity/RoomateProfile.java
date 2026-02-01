@@ -52,6 +52,9 @@ public class RoomateProfile {
     @Column
     private String gender;
 
+    @Column
+    private String housingStatus;
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     @JsonBackReference

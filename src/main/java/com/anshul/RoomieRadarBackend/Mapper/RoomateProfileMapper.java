@@ -16,6 +16,7 @@ public class RoomateProfileMapper {
                 roomProfile.getLocation(),
                 roomProfile.getBio(),
                 roomProfile.getInterests(),
-                roomProfile.getAvatar());
+                roomProfile.getAvatar(),
+                roomProfile.getHousingStatus());
     }
 }

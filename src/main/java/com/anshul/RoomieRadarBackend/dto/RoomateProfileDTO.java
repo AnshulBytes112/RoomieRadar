@@ -19,5 +19,6 @@ public class RoomateProfileDTO {
     private String bio;
     private java.util.List<String> interests;
     private String avatar;
+    private String housingStatus;
 
 }

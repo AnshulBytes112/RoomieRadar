@@ -32,6 +32,7 @@ public class RoommateService {
             newProfile.setBio(roomateProfile.getBio());
             newProfile.setInterests(roomateProfile.getInterests());
             newProfile.setAvatar(roomateProfile.getAvatar());
+            newProfile.setHousingStatus(roomateProfile.getHousingStatus());
             newProfile.setUser(user);
             roomateProfileRepository.save(newProfile);
             return RoomateProfileMapper.toDto(newProfile);
@@ -111,6 +112,7 @@ public class RoommateService {
         existingProfile.setLocation(updatedProfile.getLocation());
         existingProfile.setBio(updatedProfile.getBio());
         existingProfile.setInterests(updatedProfile.getInterests());
+        existingProfile.setHousingStatus(updatedProfile.getHousingStatus());
         if (updatedProfile.getAvatar() != null) {
             existingProfile.setAvatar(updatedProfile.getAvatar());
         }
