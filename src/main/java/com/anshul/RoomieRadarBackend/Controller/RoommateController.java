@@ -86,6 +86,16 @@ public class RoommateController {
         }
     }
 
+    @GetMapping("/{id}")
+    private ResponseEntity<?> getRoommateById(@PathVariable Long id) {
+        try {
+            RoomateProfileDTO profile = roommateService.getRoommateById(id);
+            return ResponseEntity.ok(profile);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<?> updateRoommate(@PathVariable Long id, @RequestBody RoomateProfile profile,
             Authentication authentication) {
@@ -99,6 +109,18 @@ public class RoommateController {
             return ResponseEntity.ok(updatedProfile);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<?> getProfileByUserId(@PathVariable Long userId) {
+        try {
+            User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+            RoomateProfile profile = roommateProfileRepository.findByUser(user)
+                    .orElseThrow(() -> new RuntimeException("Profile not found"));
+            return ResponseEntity.ok(roommateService.getRoommateById(profile.getId()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
         }
     }
 

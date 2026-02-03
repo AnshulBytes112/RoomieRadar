@@ -11,6 +11,9 @@ import org.springframework.stereotype.Service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -96,21 +99,70 @@ public class RoomService {
         return roomOpt.orElse(null);
     }
 
-    public Page<Room> searchRooms(String location, String budget, String roomType, Integer bedrooms,
-            Integer bathrooms, Pageable pageable) {
-        // For simplicity, using a keyword search matching title or location if ONLY
-        // location is provided.
-        // For advanced multi-param filtering with pagination, a Specification or
-        // Querydsl would be better.
-        // Here, we maintain a simplified version that handles the location keyword.
-        if (location != null && !location.isBlank()) {
-            return roomRepository.searchRooms(location, pageable);
-        }
-        return roomRepository.findAll(pageable);
+    public Page<Room> searchRooms(String location, String budget, String roomType, String bedrooms,
+            String bathrooms, Pageable pageable) {
+        Specification<Room> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (location != null && !location.isBlank()) {
+                String keyword = "%" + location.toLowerCase() + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("title")), keyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("location")), keyword)));
+            }
+
+            if (roomType != null && !roomType.isBlank()) {
+                try {
+                    Room.RoomType type = Room.RoomType.valueOf(roomType);
+                    predicates.add(criteriaBuilder.equal(root.get("type"), type));
+                } catch (IllegalArgumentException e) {
+                    // Ignore invalid room type
+                }
+            }
+
+            if (bedrooms != null && !bedrooms.isBlank()) {
+                if (bedrooms.endsWith("+")) {
+                    int min = Integer.parseInt(bedrooms.replace("+", ""));
+                    predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("bedrooms"), min));
+                } else {
+                    predicates.add(criteriaBuilder.equal(root.get("bedrooms"), Integer.parseInt(bedrooms)));
+                }
+            }
+
+            if (bathrooms != null && !bathrooms.isBlank()) {
+                if (bathrooms.endsWith("+")) {
+                    int min = Integer.parseInt(bathrooms.replace("+", ""));
+                    predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("bathrooms"), min));
+                } else {
+                    predicates.add(criteriaBuilder.equal(root.get("bathrooms"), Integer.parseInt(bathrooms)));
+                }
+            }
+
+            if (budget != null && !budget.isBlank()) {
+                if (budget.endsWith("+")) {
+                    int min = Integer.parseInt(budget.replace("+", ""));
+                    predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("price"), min));
+                } else if (budget.contains("-")) {
+                    String[] parts = budget.split("-");
+                    int min = Integer.parseInt(parts[0]);
+                    int max = Integer.parseInt(parts[1]);
+                    predicates.add(criteriaBuilder.between(root.get("price"), min, max));
+                }
+            }
+
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return roomRepository.findAll(spec, pageable);
     }
 
     public List<Room> getRoomsByUser(String username) {
         User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+        return roomRepository.findByPostedBy(user);
+    }
+
+    public List<Room> getRoomsByUserId(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         return roomRepository.findByPostedBy(user);
     }
 

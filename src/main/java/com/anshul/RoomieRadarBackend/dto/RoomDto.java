@@ -30,6 +30,8 @@ public class RoomDto {
     private String type;
     private String contactNumber;
     private String contactEmail;
+    private int totalOccupancy;
+    private int occupiedCount;
     private PostedByDto postedBy;
 
     @Data
@@ -39,5 +41,7 @@ public class RoomDto {
         private Long id;
         private String name;
         private String email;
+        private String avatar;
+        private String occupation;
     }
 }

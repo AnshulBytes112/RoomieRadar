@@ -10,8 +10,10 @@ import com.anshul.RoomieRadarBackend.repository.RoommateProfileRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-
+import jakarta.persistence.criteria.Predicate;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -48,52 +50,69 @@ public class RoommateService {
 
     public Page<RoomateProfileDTO> searchRoommates(String ageRange, String lifestyle, String budget, String location,
             String occupation, String gender, Pageable pageable) {
-        Integer minAge = null;
-        Integer maxAge = null;
 
-        if (ageRange != null && !ageRange.equalsIgnoreCase("any")) {
-            if (ageRange.contains("+")) {
-                try {
-                    minAge = Integer.parseInt(ageRange.replace("+", "").trim());
-                } catch (NumberFormatException e) {
-                    // ignore
-                }
-            } else if (ageRange.contains("-")) {
-                String[] parts = ageRange.split("-");
-                try {
-                    minAge = Integer.parseInt(parts[0].trim());
-                    if (parts.length > 1) {
-                        maxAge = Integer.parseInt(parts[1].trim());
-                    }
-                } catch (NumberFormatException e) {
-                    // ignore
+        Specification<RoomateProfile> spec = (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            // Location Filter
+            if (location != null && !location.isBlank() && !"any".equalsIgnoreCase(location)) {
+                predicates.add(criteriaBuilder.like(criteriaBuilder.lower(root.get("location")),
+                        "%" + location.toLowerCase() + "%"));
+            }
+
+            // Keyword Filter (Name, Occupation, Bio)
+            if (occupation != null && !occupation.isBlank() && !"any".equalsIgnoreCase(occupation)) {
+                String keyword = "%" + occupation.toLowerCase() + "%";
+                predicates.add(criteriaBuilder.or(
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("name")), keyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("occupation")), keyword),
+                        criteriaBuilder.like(criteriaBuilder.lower(root.get("bio")), keyword)));
+            }
+
+            // Budget Filter
+            if (budget != null && !budget.isBlank() && !"any".equalsIgnoreCase(budget)) {
+                predicates.add(criteriaBuilder.like(root.get("budget"), "%" + budget + "%"));
+            }
+
+            // Gender Filter
+            if (gender != null && !gender.isBlank() && !"any".equalsIgnoreCase(gender)) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.lower(root.get("gender")), gender.toLowerCase()));
+            }
+
+            // Age Range Filter
+            if (ageRange != null && !ageRange.isBlank() && !"any".equalsIgnoreCase(ageRange)) {
+                if (ageRange.endsWith("+")) {
+                    try {
+                        int min = Integer.parseInt(ageRange.replace("+", "").trim());
+                        predicates.add(criteriaBuilder.greaterThanOrEqualTo(root.get("age"), min));
+                    } catch (NumberFormatException e) {
+                        /* ignore */ }
+                } else if (ageRange.contains("-")) {
+                    try {
+                        String[] parts = ageRange.split("-");
+                        int min = Integer.parseInt(parts[0].trim());
+                        int max = Integer.parseInt(parts[1].trim());
+                        predicates.add(criteriaBuilder.between(root.get("age"), min, max));
+                    } catch (NumberFormatException e) {
+                        /* ignore */ }
                 }
             }
-        }
 
-        // Handle "any" values from frontend as null for backend query
-        if ("any".equalsIgnoreCase(location))
-            location = null;
-        if ("any".equalsIgnoreCase(budget))
-            budget = null;
-        if ("any".equalsIgnoreCase(occupation))
-            occupation = null;
+            // Lifestyle Filter (Optional, checking if any of the lifestyle traits match)
+            if (lifestyle != null && !lifestyle.isBlank() && !"any".equalsIgnoreCase(lifestyle)) {
+                predicates.add(criteriaBuilder.isMember(lifestyle, root.get("lifestyle")));
+            }
 
-        // format wildcards for LIKE queries
-        if (location != null)
-            location = "%" + location + "%";
-        if (budget != null)
-            budget = "%" + budget + "%";
-        if (occupation != null)
-            occupation = "%" + occupation + "%";
+            return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
+        };
 
-        // note: lifestyle filtering is not yet implemented in repo due to complexity
-        // with ElementCollection in basic JPQL
-        // for now we rely on other filters or post-filtering if strictly required, but
-        // location/budget/age are key.
+        return roomateProfileRepository.findAll(spec, pageable).map(RoomateProfileMapper::toDto);
+    }
 
-        return roomateProfileRepository.searchRoommates(location, occupation, budget, minAge, maxAge, gender, pageable)
-                .map(RoomateProfileMapper::toDto);
+    public RoomateProfileDTO getRoommateById(Long id) {
+        RoomateProfile profile = roomateProfileRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Profile not found"));
+        return RoomateProfileMapper.toDto(profile);
     }
 
     public RoomateProfileDTO updateRoommate(Long id, RoomateProfile updatedProfile, User user) {

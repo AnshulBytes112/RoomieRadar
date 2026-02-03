@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+
 @Table(name = "bookings")
 @Entity
 @Data
@@ -19,16 +20,13 @@ public class Booking {
     private Long id;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnoreProperties({"rooms", "bookings", "favourites", "images", "roomateProfile"})
+    @JsonIgnoreProperties({ "rooms", "bookings", "favourites", "images", "roomateProfile" })
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id", nullable = false)
-    @JsonIgnoreProperties({"postedBy"})
+    @JsonIgnoreProperties({ "postedBy" })
     private Room room;
-
-    @Column(name = "joining_date", nullable = false)
-    private LocalDate CheckInDate;
 
     @Column(name = "check_in_date", nullable = false)
     private LocalDate checkInDate;
@@ -45,10 +43,8 @@ public class Booking {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-
-
     public enum BookingStatus {
-        PENDING, CONFIRMED, CANCELLED,SCHEDULE_INSPECTION
+        PENDING, CONFIRMED, CANCELLED, SCHEDULE_INSPECTION
     }
 
     // Explicit setter for checkInDate to avoid naming conflicts

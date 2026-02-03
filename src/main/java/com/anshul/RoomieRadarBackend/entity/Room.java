@@ -7,14 +7,14 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
 import java.util.List;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})// To ignore lazy loading issues during JSON serialization
+@JsonIgnoreProperties({ "hibernateLazyInitializer", "handler" }) // To ignore lazy loading issues during JSON
+                                                                 // serialization
 public class Room {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -71,12 +71,19 @@ public class Room {
     @Column(length = 255)
     private String contactEmail;
 
+    @Column(nullable = true)
+    private Integer totalOccupancy = 1;
+
+    @Column(nullable = true)
+    private Integer occupiedCount = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "posted_by_user_id", nullable = false)
-    @JsonIgnoreProperties({"rooms","hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({ "rooms", "hibernateLazyInitializer", "handler" })
     @JsonBackReference
     private User postedBy;
+
     public enum RoomType {
-        Private, Shared, Studio,Hostel
+        Private, Shared, Studio, Hostel
     }
 }

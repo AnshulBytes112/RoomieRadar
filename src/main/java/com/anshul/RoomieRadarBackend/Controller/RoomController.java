@@ -34,8 +34,8 @@ public class RoomController {
             @RequestParam(required = false) String location,
             @RequestParam(required = false) String budget,
             @RequestParam(required = false) String roomType,
-            @RequestParam(required = false) Integer bedrooms,
-            @RequestParam(required = false) Integer bathrooms,
+            @RequestParam(required = false) String bedrooms,
+            @RequestParam(required = false) String bathrooms,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -65,15 +65,27 @@ public class RoomController {
     }
 
     @GetMapping("/{id}")
-    private ResponseEntity<?> getRoomById(@PathVariable Long id) {
-        return ResponseEntity.ok(roomService.getRoomById(id));
-
+    public ResponseEntity<RoomDto> getRoomById(@PathVariable Long id) {
+        Room room = roomService.getRoomById(id);
+        if (room == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(RoomMapper.toDto(room));
     }
 
     @GetMapping("/my-listings")
     public ResponseEntity<List<RoomDto>> getMyListings(Authentication authentication) {
         String username = authentication.getName();
         List<RoomDto> rooms = roomService.getRoomsByUser(username)
+                .stream()
+                .map(RoomMapper::toDto)
+                .toList();
+        return ResponseEntity.ok(rooms);
+    }
+
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<RoomDto>> getRoomsByUserId(@PathVariable Long userId) {
+        List<RoomDto> rooms = roomService.getRoomsByUserId(userId)
                 .stream()
                 .map(RoomMapper::toDto)
                 .toList();
