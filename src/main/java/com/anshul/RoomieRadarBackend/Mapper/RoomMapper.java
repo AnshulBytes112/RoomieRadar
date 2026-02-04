@@ -40,7 +40,9 @@ public class RoomMapper {
                                                                 : null,
                                                 room.getPostedBy().getRoomateProfile() != null
                                                                 ? room.getPostedBy().getRoomateProfile().getOccupation()
-                                                                : null)
-                                                : null);
+                                                                : null,
+                                                room.getPostedBy().isDeleted())
+                                                : null,
+                                room.isDeleted());
         }
 }

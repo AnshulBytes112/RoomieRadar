@@ -235,4 +235,10 @@ public class ChatService {
 
         return reqRepo.findByFromUserAndStatus(user, MessageRequest.RequestStatus.PENDING);
     }
+
+    public void deleteRequest(Long id) {
+       MessageRequest req = reqRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Request not found"));
+        reqRepo.delete(req);
+}
 }

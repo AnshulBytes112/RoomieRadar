@@ -33,6 +33,7 @@ public class RoomDto {
     private int totalOccupancy;
     private int occupiedCount;
     private PostedByDto postedBy;
+    private boolean deleted;
 
     @Data
     @AllArgsConstructor
@@ -43,5 +44,6 @@ public class RoomDto {
         private String email;
         private String avatar;
         private String occupation;
+        private boolean deleted;
     }
 }

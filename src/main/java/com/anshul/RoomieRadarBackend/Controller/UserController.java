@@ -31,13 +31,14 @@ public class UserController {
 
             UserProfileDTO.UserProfileDTOBuilder builder = UserProfileDTO.builder()
                     .userId(user.getId())
-                    .name(user.getName())
-                    .email(user.getEmail())
-                    .username(user.getUsername())
-                    .phone(user.getPhone())
+                    .name(user.isDeleted() ? "Deleted User" : user.getName())
+                    .email(user.isDeleted() ? "" : user.getEmail())
+                    .username(user.isDeleted() ? "deleted_user" : user.getUsername())
+                    .phone(user.isDeleted() ? "" : user.getPhone())
+                    .deleted(user.isDeleted())
                     .hasRoommateProfile(roomateProfile != null);
 
-            if (roomateProfile != null) {
+            if (roomateProfile != null && !user.isDeleted()) {
                 builder.avatar(roomateProfile.getAvatar())
                         .age(roomateProfile.getAge())
                         .occupation(roomateProfile.getOccupation())
@@ -53,6 +54,23 @@ public class UserController {
             return ResponseEntity.ok(builder.build());
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/profile/deactivate")
+    public ResponseEntity<?> deactivateAccount(org.springframework.security.core.Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            user.setDeleted(true);
+            userRepository.save(user);
+
+            return ResponseEntity.ok(Map.of("message", "Account deactivated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", e.getMessage()));
         }
     }

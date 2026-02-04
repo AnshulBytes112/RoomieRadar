@@ -44,7 +44,10 @@ public class RoommateService {
     }
 
     public Page<RoomateProfileDTO> getAllRoommates(Pageable pageable) {
-        Page<RoomateProfile> profiles = roomateProfileRepository.findAll(pageable);
+        Specification<RoomateProfile> spec = (root, query, criteriaBuilder) -> criteriaBuilder.and(
+                criteriaBuilder.equal(root.get("user").get("deleted"), false),
+                criteriaBuilder.equal(root.get("deleted"), false));
+        Page<RoomateProfile> profiles = roomateProfileRepository.findAll(spec, pageable);
         return profiles.map(RoomateProfileMapper::toDto);
     }
 
@@ -53,6 +56,8 @@ public class RoommateService {
 
         Specification<RoomateProfile> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.equal(root.get("user").get("deleted"), false));
+            predicates.add(criteriaBuilder.equal(root.get("deleted"), false));
 
             // Location Filter
             if (location != null && !location.isBlank() && !"any".equalsIgnoreCase(location)) {
@@ -138,5 +143,18 @@ public class RoommateService {
 
         roomateProfileRepository.save(existingProfile);
         return RoomateProfileMapper.toDto(existingProfile);
+    }
+
+    public boolean deleteRoommateProfile(Long id, User user) {
+        RoomateProfile profile = roomateProfileRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Profile not found"));
+
+        if (!profile.getUser().getId().equals(user.getId())) {
+            return false;
+        }
+
+        profile.setDeleted(true);
+        roomateProfileRepository.save(profile);
+        return true;
     }
 }

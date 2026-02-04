@@ -18,7 +18,7 @@ public class UserProfileDTO {
     private String phone;
     private String avatar;
 
-    //(optional)
+    // (optional)
     private Integer age;
     private String occupation;
     private List<String> lifestyle;
@@ -30,4 +30,5 @@ public class UserProfileDTO {
     private String gender;
 
     private boolean hasRoommateProfile;
+    private boolean deleted;
 }

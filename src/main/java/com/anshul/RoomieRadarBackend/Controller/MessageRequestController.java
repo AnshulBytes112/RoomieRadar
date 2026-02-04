@@ -91,4 +91,10 @@ public class MessageRequestController {
         }).toList();
         return ResponseEntity.ok(view);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteRequest(@PathVariable Long id) {
+        chatService.deleteRequest(id);
+        return ResponseEntity.ok(Map.of("status", "deleted"));
+    }
 }

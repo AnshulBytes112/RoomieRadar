@@ -17,6 +17,7 @@ public class RoomateProfileMapper {
                 roomProfile.getBio(),
                 roomProfile.getInterests(),
                 roomProfile.getAvatar(),
-                roomProfile.getHousingStatus());
+                roomProfile.getHousingStatus(),
+                roomProfile.isDeleted());
     }
 }

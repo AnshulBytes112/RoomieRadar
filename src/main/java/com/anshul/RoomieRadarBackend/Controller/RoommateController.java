@@ -124,4 +124,21 @@ public class RoommateController {
         }
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteRoommateProfile(@PathVariable Long id, Authentication authentication) {
+        try {
+            String username = authentication.getName();
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            boolean deleted = roommateService.deleteRoommateProfile(id, user);
+            if (deleted) {
+                return ResponseEntity.ok(Map.of("message", "Roommate profile deleted successfully"));
+            } else {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("message", "Unauthorized to delete this profile"));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("message", e.getMessage()));
+        }
+    }
 }

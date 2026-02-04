@@ -60,4 +60,6 @@ public class RoomateProfile {
     @JsonBackReference
     private User user;
 
+    @Column(nullable = false)
+    private boolean deleted = false;
 }

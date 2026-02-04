@@ -83,6 +83,9 @@ public class Room {
     @JsonBackReference
     private User postedBy;
 
+    @Column(nullable = false)
+    private boolean deleted = false;
+
     public enum RoomType {
         Private, Shared, Studio, Hostel
     }

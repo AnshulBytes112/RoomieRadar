@@ -59,4 +59,7 @@ public class User {
     private List<Booking> bookings;
 
     private String phone;
+
+    @Column(nullable = false)
+    private boolean deleted = false;
 }

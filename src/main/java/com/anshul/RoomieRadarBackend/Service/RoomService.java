@@ -83,13 +83,14 @@ public class RoomService {
             return false; // Not the owner
         }
 
-        // Remove room from user's list if present
+        // Remove room from user's list if present (optional for soft delete but keeps
+        // state clean)
         if (user.getRooms() != null) {
             user.getRooms().remove(room);
-            userRepository.save(user); // Only needed if cascade is not configured
         }
 
-        roomRepository.delete(room);
+        room.setDeleted(true);
+        roomRepository.save(room);
 
         return true;
     }
@@ -103,6 +104,8 @@ public class RoomService {
             String bathrooms, Pageable pageable) {
         Specification<Room> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.equal(root.get("postedBy").get("deleted"), false));
+            predicates.add(criteriaBuilder.equal(root.get("deleted"), false));
 
             if (location != null && !location.isBlank()) {
                 String keyword = "%" + location.toLowerCase() + "%";
@@ -158,12 +161,16 @@ public class RoomService {
 
     public List<Room> getRoomsByUser(String username) {
         User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
-        return roomRepository.findByPostedBy(user);
+        return roomRepository.findByPostedBy(user).stream()
+                .filter(room -> !room.isDeleted())
+                .toList();
     }
 
     public List<Room> getRoomsByUserId(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
-        return roomRepository.findByPostedBy(user);
+        return roomRepository.findByPostedBy(user).stream()
+                .filter(room -> !room.isDeleted())
+                .toList();
     }
 
     public RoomDto updateRoom(Long id, Room roomDetails, String username) {
