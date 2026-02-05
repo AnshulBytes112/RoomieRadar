@@ -19,15 +19,14 @@ import java.util.Map;
 @Component
 public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
-
     @Autowired
     private JwtUtils jwtUtils;
 
     @Override
     public boolean beforeHandshake(ServerHttpRequest request,
-                                   ServerHttpResponse response,
-                                   WebSocketHandler wsHandler,
-                                   Map<String, Object> attributes) throws Exception {
+            ServerHttpResponse response,
+            WebSocketHandler wsHandler,
+            Map<String, Object> attributes) throws Exception {
 
         if (!(request instanceof ServletServerHttpRequest)) {
             return true;
@@ -57,27 +56,27 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
         }
 
         if (token != null && jwtUtils != null) {
-            String username = null;
+            String email = null;
             try {
-                username = jwtUtils.extractUsername(token);
-                System.out.println("JWT Interceptor: Extracted username from token: " + username);
+                email = jwtUtils.extractEmail(token);
+                System.out.println("JWT Interceptor: Extracted email from token: " + email);
             } catch (Exception e) {
-                System.out.println("JWT Interceptor: Failed to extract username: " + e.getMessage());
+                System.out.println("JWT Interceptor: Failed to extract email: " + e.getMessage());
                 // ignore invalid token here; handshake will proceed without a user
             }
-            if (username != null) {
+            if (email != null) {
                 // Set a Spring Security context so the handshake is authenticated
-                UsernamePasswordAuthenticationToken auth =
-                        new UsernamePasswordAuthenticationToken(username, null, List.of());
+                UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(email, null,
+                        List.of());
                 SecurityContextHolder.getContext().setAuthentication(auth);
 
-                final String principalName = username; // make effectively final for lambda capture
-                attributes.put("username", principalName); // store in session attributes
+                final String principalEmail = email; // make effectively final for lambda capture
+                attributes.put("email", principalEmail); // store in session attributes
                 // Also store Principal in WebSocket session
                 attributes.put("principal", auth);
-                System.out.println("JWT Interceptor: Stored username '" + principalName + "' in session attributes");
+                System.out.println("JWT Interceptor: Stored email '" + principalEmail + "' in session attributes");
             } else {
-                System.out.println("JWT Interceptor: Username is null after extraction");
+                System.out.println("JWT Interceptor: Email is null after extraction");
             }
         } else {
             System.out.println("JWT Interceptor: Token is null or jwtUtils is null");
@@ -87,7 +86,8 @@ public class JwtHandshakeInterceptor implements HandshakeInterceptor {
 
     @Override
     public void afterHandshake(ServerHttpRequest request,
-                               ServerHttpResponse response,
-                               WebSocketHandler wsHandler,
-                               Exception exception) {}
+            ServerHttpResponse response,
+            WebSocketHandler wsHandler,
+            Exception exception) {
+    }
 }

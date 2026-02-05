@@ -10,8 +10,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.Map;
+import lombok.RequiredArgsConstructor;
 
 @RestController
+@RequiredArgsConstructor
 @RequestMapping("/api/users")
 public class UserController {
 
@@ -23,6 +25,9 @@ public class UserController {
 
     @GetMapping("/{userId}/profile")
     public ResponseEntity<?> getUserProfile(@PathVariable Long userId) {
+        if (userId == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "User ID is required"));
+        }
         try {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
@@ -33,7 +38,6 @@ public class UserController {
                     .userId(user.getId())
                     .name(user.isDeleted() ? "Deleted User" : user.getName())
                     .email(user.isDeleted() ? "" : user.getEmail())
-                    .username(user.isDeleted() ? "deleted_user" : user.getUsername())
                     .phone(user.isDeleted() ? "" : user.getPhone())
                     .deleted(user.isDeleted())
                     .hasRoommateProfile(roomateProfile != null);
@@ -61,8 +65,8 @@ public class UserController {
     @PostMapping("/profile/deactivate")
     public ResponseEntity<?> deactivateAccount(org.springframework.security.core.Authentication authentication) {
         try {
-            String username = authentication.getName();
-            User user = userRepository.findByUsername(username)
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
 
             user.setDeleted(true);

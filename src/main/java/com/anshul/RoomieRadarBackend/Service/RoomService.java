@@ -69,7 +69,9 @@ public class RoomService {
         roomRepository.save(newRoom);
     }
 
-    public boolean deleteRoom(Long id, String username) {
+    public boolean deleteRoom(Long id, String email) {
+        if (id == null)
+            return false;
         Optional<Room> roomOpt = roomRepository.findById(id);
 
         if (roomOpt.isEmpty()) {
@@ -79,7 +81,7 @@ public class RoomService {
         Room room = roomOpt.get();
         User user = room.getPostedBy(); // directly get the owner
 
-        if (!username.equals(user.getUsername())) {
+        if (!email.equals(user.getEmail())) {
             return false; // Not the owner
         }
 
@@ -159,24 +161,26 @@ public class RoomService {
         return roomRepository.findAll(spec, pageable);
     }
 
-    public List<Room> getRoomsByUser(String username) {
-        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+    public List<Room> getRoomsByUser(String email) {
+        User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
         return roomRepository.findByPostedBy(user).stream()
                 .filter(room -> !room.isDeleted())
                 .toList();
     }
 
     public List<Room> getRoomsByUserId(Long userId) {
+        if (userId == null)
+            return new java.util.ArrayList<>();
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         return roomRepository.findByPostedBy(user).stream()
                 .filter(room -> !room.isDeleted())
                 .toList();
     }
 
-    public RoomDto updateRoom(Long id, Room roomDetails, String username) {
+    public RoomDto updateRoom(Long id, Room roomDetails, String email) {
         Room room = roomRepository.findById(id).orElseThrow(() -> new RuntimeException("Room not found"));
 
-        if (!room.getPostedBy().getUsername().equals(username)) {
+        if (!room.getPostedBy().getEmail().equals(email)) {
             throw new RuntimeException("Unauthorized: You do not own this room listing");
         }
 

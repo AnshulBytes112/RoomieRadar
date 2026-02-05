@@ -1,3 +1,4 @@
+
 package com.anshul.RoomieRadarBackend.Service;
 
 import com.anshul.RoomieRadarBackend.Model.Conversation;
@@ -31,10 +32,10 @@ public class ChatService {
     private final UserRepository userRepo; // your existing user repo
     private final SimpMessagingTemplate messagingTemplate; // for websocket pushing
 
-    public MessageRequest createRequestByUsername(String username, CreateRequestDTO dto) {
+    public MessageRequest createRequestByEmail(String email, CreateRequestDTO dto) {
         // find current user
-        var fromUser = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+        var fromUser = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
         // find target user
         var toUser = userRepo.findById(dto.getToUserId())
@@ -178,18 +179,18 @@ public class ChatService {
         return msgRepo.findByConversationOrderByCreatedAtAsc(conv);
     }
 
-    public List<MessageRequest> getPendingRequestsForUsername(String username) {
-        var user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+    public List<MessageRequest> getPendingRequestsForEmail(String email) {
+        var user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
         // return reqRepo.findByToUserAndStatus(user,
         // MessageRequest.RequestStatus.PENDING);
         return reqRepo.findByToUserAndStatus(user, MessageRequest.RequestStatus.PENDING);
     }
 
-    public Conversation respondToRequestByUsername(String username, Long id, ResponseDTO dto) {
-        var user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+    public Conversation respondToRequestByEmail(String email, Long id, ResponseDTO dto) {
+        var user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
         return respondToRequest(user.getId(), id, dto);
     }
@@ -199,46 +200,46 @@ public class ChatService {
      * message
      * request was accepted and a private conversation was created).
      */
-    public boolean canPrivateChat(String senderUsername, String receiverUsername) {
-        var sender = userRepo.findByUsername(senderUsername)
-                .orElseThrow(() -> new RuntimeException("User not found: " + senderUsername));
-        var receiver = userRepo.findByUsername(receiverUsername)
-                .orElseThrow(() -> new RuntimeException("User not found: " + receiverUsername));
+    public boolean canPrivateChat(String senderEmail, String receiverEmail) {
+        var sender = userRepo.findByEmail(senderEmail)
+                .orElseThrow(() -> new RuntimeException("User not found: " + senderEmail));
+        var receiver = userRepo.findByEmail(receiverEmail)
+                .orElseThrow(() -> new RuntimeException("User not found: " + receiverEmail));
 
         return convRepo.findBetweenUsers(sender.getId(), receiver.getId()).isPresent();
     }
 
-    public List<Conversation> getConversationsForUsername(String username) {
-        var user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+    public List<Conversation> getConversationsForEmail(String email) {
+        var user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
         return getConversationsFor(user.getId());
     }
 
-    public List<Message> getMessagesForUsername(Long id, String username) {
-        var user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+    public List<Message> getMessagesForEmail(Long id, String email) {
+        var user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
         return getMessages(id, user.getId());
     }
 
-    public Message sendMessageByUsername(String username, Long id, SendMessageDTO dto) {
-        var user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+    public Message sendMessageByEmail(String email, Long id, SendMessageDTO dto) {
+        var user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
         return sendMessage(user.getId(), id, dto);
     }
 
-    public List<MessageRequest> getSentRequestsForUsername(String username) {
-        var user = userRepo.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+    public List<MessageRequest> getSentRequestsForEmail(String email) {
+        var user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
         return reqRepo.findByFromUserAndStatus(user, MessageRequest.RequestStatus.PENDING);
     }
 
     public void deleteRequest(Long id) {
-       MessageRequest req = reqRepo.findById(id)
+        MessageRequest req = reqRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Request not found"));
         reqRepo.delete(req);
-}
+    }
 }

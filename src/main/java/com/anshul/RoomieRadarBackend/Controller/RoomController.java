@@ -7,7 +7,6 @@ import com.anshul.RoomieRadarBackend.Service.UserService;
 import com.anshul.RoomieRadarBackend.dto.RoomDto;
 import com.anshul.RoomieRadarBackend.entity.Room;
 import com.anshul.RoomieRadarBackend.entity.User;
-import com.anshul.RoomieRadarBackend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -57,8 +56,8 @@ public class RoomController {
     //
     @PostMapping
     private ResponseEntity<?> createRoom(@RequestBody Room room, Authentication authentication) {
-        String username = authentication.getName();
-        User user = userService.findByUsername(username);
+        String email = authentication.getName();
+        User user = userService.findByEmail(email);
         RoomDto saved = roomService.createRoom(room, user);
         return ResponseEntity.ok(saved);
 
@@ -75,8 +74,8 @@ public class RoomController {
 
     @GetMapping("/my-listings")
     public ResponseEntity<List<RoomDto>> getMyListings(Authentication authentication) {
-        String username = authentication.getName();
-        List<RoomDto> rooms = roomService.getRoomsByUser(username)
+        String email = authentication.getName();
+        List<RoomDto> rooms = roomService.getRoomsByUser(email)
                 .stream()
                 .map(RoomMapper::toDto)
                 .toList();
@@ -95,8 +94,8 @@ public class RoomController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateRoom(@PathVariable Long id, @RequestBody Room room, Authentication authentication) {
         try {
-            String username = authentication.getName();
-            RoomDto updatedRoom = roomService.updateRoom(id, room, username);
+            String email = authentication.getName();
+            RoomDto updatedRoom = roomService.updateRoom(id, room, email);
             return ResponseEntity.ok(updatedRoom);
         } catch (RuntimeException e) {
             return ResponseEntity.status(403).body(e.getMessage());
@@ -106,9 +105,9 @@ public class RoomController {
     //
     @DeleteMapping("/{id}")
     private ResponseEntity<?> deleteRoom(@PathVariable Long id, Authentication authentication) {
-        String username = authentication.getName();
+        String email = authentication.getName();
 
-        boolean deleted = roomService.deleteRoom(id, username);
+        boolean deleted = roomService.deleteRoom(id, email);
 
         if (deleted) {
             return ResponseEntity.ok("Room deleted successfully.");

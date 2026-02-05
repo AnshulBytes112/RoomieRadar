@@ -14,7 +14,7 @@ import com.anshul.RoomieRadarBackend.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import java.util.List;
+import lombok.RequiredArgsConstructor;
 import java.util.Map;
 import java.util.Optional;
 
@@ -34,8 +34,8 @@ public class RoommateController {
             Authentication authentication) {
         try {
 
-            String username = authentication.getName();
-            User user = userRepository.findByUsername(username).orElse(null);
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email).orElse(null);
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                         .body(Map.of("message", "User not found"));
@@ -100,8 +100,8 @@ public class RoommateController {
     public ResponseEntity<?> updateRoommate(@PathVariable Long id, @RequestBody RoomateProfile profile,
             Authentication authentication) {
         try {
-            String username = authentication.getName();
-            User user = userRepository.findByUsername(username).orElse(null);
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email).orElse(null);
             if (user == null) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "User not found"));
             }
@@ -127,8 +127,8 @@ public class RoommateController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteRoommateProfile(@PathVariable Long id, Authentication authentication) {
         try {
-            String username = authentication.getName();
-            User user = userRepository.findByUsername(username)
+            String email = authentication.getName();
+            User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new RuntimeException("User not found"));
             boolean deleted = roommateService.deleteRoommateProfile(id, user);
             if (deleted) {

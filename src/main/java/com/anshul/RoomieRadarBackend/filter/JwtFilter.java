@@ -26,28 +26,28 @@ public class JwtFilter extends OncePerRequestFilter {
 
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        String authorizationHeader = request.getHeader("Authorization");
-        String username = null;
+        String authHeader = request.getHeader("Authorization");
+        String email = null;
         String jwt = null;
-        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
-            jwt = authorizationHeader.substring(7);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            jwt = authHeader.substring(7);
             try {
-                username = jwtUtil.extractUsername(jwt);
+                email = jwtUtil.extractEmail(jwt);
             } catch (Exception e) {
-                System.out.println("DEBUG: Failed to extract username: " + e.getMessage());
+                System.out.println("DEBUG: Failed to extract email: " + e.getMessage());
             }
         }
 
-        if (username != null) {
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        if (email != null) {
+            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
             if (jwtUtil.validateToken(jwt)) {
                 UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, null,
                         userDetails.getAuthorities());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
-                System.out.println("DEBUG: Authentication set for user: " + username);
+                System.out.println("DEBUG: Authentication set for user: " + email);
             } else {
-                System.out.println("DEBUG: Token validation failed for user: " + username);
+                System.out.println("DEBUG: Token validation failed for user: " + email);
             }
         }
         chain.doFilter(request, response);

@@ -1,8 +1,6 @@
 package com.anshul.RoomieRadarBackend.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -23,13 +21,13 @@ public class User {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String username;
+    private String email;
+
+    @Column(unique = true)
+    private String phone;
 
     @Column(nullable = false)
     private String name;
-
-    @Column(nullable = false, unique = true)
-    private String email;
 
     @Column(nullable = false)
     private String password;
@@ -37,6 +35,13 @@ public class User {
     private String role;
 
     private Instant lastActive;
+
+    @Column(nullable = true)
+    private Boolean emailVerified = false;
+
+    public boolean isEmailVerified() {
+        return Boolean.TRUE.equals(this.emailVerified);
+    }
 
     @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonManagedReference
@@ -57,8 +62,6 @@ public class User {
     @OneToMany(mappedBy = "user")
     @JsonIgnore
     private List<Booking> bookings;
-
-    private String phone;
 
     @Column(nullable = false)
     private boolean deleted = false;

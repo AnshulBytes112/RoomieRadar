@@ -24,8 +24,8 @@ public class PresenceFilter implements Filter {
             throws IOException, ServletException {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.isAuthenticated() && !"anonymousUser".equals(auth.getPrincipal())) {
-            String username = auth.getName();
-            userRepository.findByUsername(username).ifPresent(user -> {
+            String email = auth.getName();
+            userRepository.findByEmail(email).ifPresent(user -> {
                 // Only update if more than 10 seconds have passed to avoid excessive DB writes
                 if (user.getLastActive() == null || user.getLastActive().isBefore(Instant.now().minusSeconds(10))) {
                     user.setLastActive(Instant.now());

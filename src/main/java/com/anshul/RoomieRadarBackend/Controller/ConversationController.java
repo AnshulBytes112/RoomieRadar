@@ -32,13 +32,13 @@ public class ConversationController {
 
     @GetMapping
     public ResponseEntity<?> list(Authentication authentication) {
-        String username = authentication.getName();
-        userRepository.findByUsername(username).ifPresent(user -> {
+        String email = authentication.getName();
+        userRepository.findByEmail(email).ifPresent(user -> {
             user.setLastActive(Instant.now());
             userRepository.save(user);
         });
 
-        var convos = chatService.getConversationsForUsername(username);
+        var convos = chatService.getConversationsForEmail(email);
         return ResponseEntity.ok(convos.stream().map(c -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", c.getId());
@@ -46,7 +46,7 @@ public class ConversationController {
 
             // Participant Details
             User otherUser = c.getParticipants().stream()
-                    .filter(u -> !u.getUsername().equals(username))
+                    .filter(u -> !u.getEmail().equals(email))
                     .findFirst()
                     .orElse(null);
 
@@ -76,12 +76,12 @@ public class ConversationController {
 
     @GetMapping("/{id}/messages")
     public ResponseEntity<?> messages(@PathVariable Long id, Authentication authentication) {
-        String username = authentication.getName();
-        userRepository.findByUsername(username).ifPresent(user -> {
+        String email = authentication.getName();
+        userRepository.findByEmail(email).ifPresent(user -> {
             user.setLastActive(Instant.now());
             userRepository.save(user);
         });
-        var msgs = chatService.getMessagesForUsername(id, username);
+        var msgs = chatService.getMessagesForEmail(id, email);
         var out = msgs.stream()
                 .map(m -> {
                     Map<String, Object> map = new HashMap<>();
@@ -98,13 +98,13 @@ public class ConversationController {
     @PostMapping("/{id}/messages")
     public ResponseEntity<?> sendMessage(@PathVariable Long id, @RequestBody SendMessageDTO dto,
             Authentication authentication) {
-        String username = authentication.getName();
-        userRepository.findByUsername(username).ifPresent(user -> {
+        String email = authentication.getName();
+        userRepository.findByEmail(email).ifPresent(user -> {
             user.setLastActive(Instant.now());
             userRepository.save(user);
         });
 
-        var m = chatService.sendMessageByUsername(username, id, dto);
+        var m = chatService.sendMessageByEmail(email, id, dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", m.getId()));
     }
 }

@@ -26,11 +26,11 @@ public class ChatController {
     public void sendPrivateMessage(Principal principal, ChatMessage message, StompHeaderAccessor accessor) {
         String sender = null;
 
-        // Try to get username from session attributes set by JWT interceptor
+        // Try to get email from session attributes set by JWT interceptor
         Map<String, Object> sessionAttrs = accessor.getSessionAttributes();
-        Object username = sessionAttrs != null ? sessionAttrs.get("username") : null;
-        if (username instanceof String) {
-            sender = (String) username;
+        Object email = sessionAttrs != null ? sessionAttrs.get("email") : null;
+        if (email instanceof String) {
+            sender = (String) email;
         } else if (principal != null) {
             sender = principal.getName();
         }
@@ -43,7 +43,7 @@ public class ChatController {
         System.out.println("WebSocket: Received message from " + finalSender + " to " + message.getReceiver());
         System.out.println(
                 "WebSocket: Principal type: " + (principal != null ? principal.getClass().getSimpleName() : "null"));
-        System.out.println("WebSocket: Username from session: " + username);
+        System.out.println("WebSocket: Email from session: " + email);
 
         String receiver = message.getReceiver();
         if (receiver == null || receiver.trim().isEmpty()) {

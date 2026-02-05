@@ -8,6 +8,7 @@ import com.anshul.RoomieRadarBackend.entity.Booking;
 import com.anshul.RoomieRadarBackend.entity.User;
 import com.anshul.RoomieRadarBackend.repository.BookingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -30,18 +31,20 @@ public class BookingController {
 
     @Autowired
     public UserService userService;
+
     @PostMapping
-    public ResponseEntity<?> createBooking(@RequestBody BookingRequest bookingRequest,Authentication authentication) {
-        try{
+    public ResponseEntity<?> createBooking(@RequestBody BookingRequest bookingRequest, Authentication authentication) {
+        try {
             System.out.println("DEBUG: Creating booking with data: " + bookingRequest);
-            
-            Long RoomId= bookingRequest.getRoomId();
-            User bookedby= userService.findByUsername(authentication.getName());
+
+            Long RoomId = bookingRequest.getRoomId();
+            User bookedby = userService.findByEmail(authentication.getName());
             System.out.println("DEBUG: Found user: " + bookedby.getName() + " (ID: " + bookedby.getId() + ")");
-            
+
             User roomcreator = bookingService.getRoomCreator(RoomId);
-            System.out.println("DEBUG: Room creator: " + roomcreator.getName() + " (Email: " + roomcreator.getEmail() + ")");
-            
+            System.out.println(
+                    "DEBUG: Room creator: " + roomcreator.getName() + " (Email: " + roomcreator.getEmail() + ")");
+
             // Send emails only if user has opted in for email confirmation
             if (bookingRequest.getSendEmailConfirmation() != null && bookingRequest.getSendEmailConfirmation()) {
                 System.out.println("DEBUG: Sending email confirmation...");
@@ -53,21 +56,21 @@ public class BookingController {
                             roomcreator.getEmail(),
                             bookingRequest.getRoomId().toString(),
                             bookingRequest.getCheckInDate(),
-                            bookingRequest.getMessage()
-                    );
+                            bookingRequest.getMessage());
                     System.out.println("DEBUG: Emails sent successfully");
                 } catch (Exception emailError) {
-                    System.err.println("WARNING: Failed to send emails but proceeding with booking: " + emailError.getMessage());
+                    System.err.println(
+                            "WARNING: Failed to send emails but proceeding with booking: " + emailError.getMessage());
                     // Don't re-throw email errors - booking should still succeed
                 }
             } else {
                 System.out.println("DEBUG: Email confirmation disabled");
             }
-            
+
             System.out.println("DEBUG: Creating booking in database...");
             Booking createdBooking = bookingService.createBooking(bookingRequest, RoomId, bookedby);
             System.out.println("DEBUG: Booking created successfully with ID: " + createdBooking.getId());
-            
+
             return ResponseEntity.status(201).body(createdBooking);
         } catch (Exception e) {
             System.err.println("ERROR: Failed to create booking: " + e.getMessage());
@@ -81,23 +84,25 @@ public class BookingController {
         try {
             List<Booking> bookings = bookingService.getBookingsByUser(authentication.getName());
             return ResponseEntity.ok(bookings);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return ResponseEntity.status(500).body("Error retrieving bookings: " + e.getMessage());
         }
-       
+
     }
 
     @DeleteMapping
     public ResponseEntity<?> deleteBooking(@RequestParam Long bookingId, Authentication authentication) {
+        if (bookingId == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Booking ID is required");
+        }
         try {
-            User user = userService.findByUsername(authentication.getName());
+            User user = userService.findByEmail(authentication.getName());
             Booking booking = bookingRepository.findById(bookingId).orElse(null);
 
             if (booking == null || !booking.getUser().getId().equals(user.getId())) {
                 return ResponseEntity.status(404).body("Booking not found or does not belong to user");
             }
-            
+
             // Capture booking details before deleting
             User roomOwner = booking.getRoom().getPostedBy();
             String roomTitle = booking.getRoom().getTitle();
@@ -106,26 +111,24 @@ public class BookingController {
             String userEmail = user.getEmail();
             String ownerEmail = roomOwner.getEmail();
             String ownerName = roomOwner.getName();
-            
+
             bookingService.deleteBooking(bookingId);
-            
+
             // Send cancellation email to the user who cancelled
             bookingMailService.sendBookingCancellationEmails(
                     userName,
                     userEmail,
                     roomTitle,
-                    checkInDate
-            );
-            
+                    checkInDate);
+
             // Send notification email to the room owner
             bookingMailService.sendBookingCancellationNotificationToOwner(
                     ownerEmail,
                     ownerName,
                     roomTitle,
                     userName,
-                    checkInDate
-            );
-            
+                    checkInDate);
+
             return ResponseEntity.ok("Booking deleted successfully. Room owner has been notified.");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error deleting booking: " + e.getMessage());

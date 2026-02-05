@@ -1,6 +1,5 @@
 package com.anshul.RoomieRadarBackend.Service;
 
-
 import com.anshul.RoomieRadarBackend.entity.User;
 import com.anshul.RoomieRadarBackend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +19,7 @@ public class UserService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null || !authentication.isAuthenticated()) {
-            return null; // or throw an exception
+            return Optional.empty();
         }
 
         String email = authentication.getName();
@@ -28,10 +27,8 @@ public class UserService {
         return userRepository.findByEmail(email);
     }
 
-    public User findByUsername(String username) {
-        Optional<User> user = userRepository.findByUsername(username);
-
+    public User findByEmail(String email) {
+        Optional<User> user = userRepository.findByEmail(email);
         return user.orElse(null);
-
     }
 }

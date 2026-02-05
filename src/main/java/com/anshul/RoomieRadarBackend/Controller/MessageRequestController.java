@@ -23,8 +23,8 @@ public class MessageRequestController {
 
     @PostMapping
     public ResponseEntity<?> create(@RequestBody CreateRequestDTO dto, Authentication authentication) {
-        String username = authentication.getName(); // current logged-in user
-        var req = chatService.createRequestByUsername(username, dto);
+        String email = authentication.getName(); // current logged-in user
+        var req = chatService.createRequestByEmail(email, dto);
         if (req == null) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "Request already exists or user not found"));
@@ -34,16 +34,16 @@ public class MessageRequestController {
 
     @GetMapping("/inbox")
     public ResponseEntity<?> inbox(Authentication authentication) {
-        String username = authentication.getName(); // currently logged-in user
+        String email = authentication.getName(); // currently logged-in user
 
-        var list = chatService.getPendingRequestsForUsername(username);
+        var list = chatService.getPendingRequestsForEmail(email);
 
         // map to DTOs or minimal view
         var view = list.stream().map(r -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", r.getId());
             map.put("fromUserId", r.getFromUser() != null ? r.getFromUser().getId() : null);
-            map.put("fromUsername", r.getFromUser() != null ? r.getFromUser().getUsername() : null);
+            map.put("fromEmail", r.getFromUser() != null ? r.getFromUser().getEmail() : null);
             map.put("fromName", r.getFromUser() != null ? r.getFromUser().getName() : null);
             map.put("message", r.getMessage());
             map.put("createdAt", r.getCreatedAt());
@@ -58,10 +58,10 @@ public class MessageRequestController {
             @RequestBody ResponseDTO dto) {
         // Get current logged-in user
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
+        String email = authentication.getName();
 
         // Process the response to the message request
-        var conversation = chatService.respondToRequestByUsername(username, id, dto);
+        var conversation = chatService.respondToRequestByEmail(email, id, dto);
 
         // Return appropriate response based on user's choice
         if (dto.isAccept()) {
@@ -73,16 +73,16 @@ public class MessageRequestController {
 
     @GetMapping("/sent")
     public ResponseEntity<?> getsentrequests(Authentication authentication) {
-        String username = authentication.getName(); // currently logged-in user
+        String email = authentication.getName(); // currently logged-in user
 
-        var list = chatService.getSentRequestsForUsername(username);
+        var list = chatService.getSentRequestsForEmail(email);
 
         // map to DTOs or minimal view
         var view = list.stream().map(r -> {
             Map<String, Object> map = new HashMap<>();
             map.put("id", r.getId());
             map.put("toUserId", r.getToUser() != null ? r.getToUser().getId() : null);
-            map.put("toUsername", r.getToUser() != null ? r.getToUser().getUsername() : null);
+            map.put("toEmail", r.getToUser() != null ? r.getToUser().getEmail() : null);
             map.put("toName", r.getToUser() != null ? r.getToUser().getName() : null);
             map.put("message", r.getMessage());
             map.put("status", r.getStatus());
