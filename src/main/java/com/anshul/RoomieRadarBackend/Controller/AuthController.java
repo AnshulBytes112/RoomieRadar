@@ -4,7 +4,9 @@ import com.anshul.RoomieRadarBackend.Service.EmailService;
 import com.anshul.RoomieRadarBackend.Service.OtpService;
 import com.anshul.RoomieRadarBackend.dto.LoginRequest;
 import com.anshul.RoomieRadarBackend.dto.RegisterRequest;
+import com.anshul.RoomieRadarBackend.entity.RoomateProfile;
 import com.anshul.RoomieRadarBackend.entity.User;
+import com.anshul.RoomieRadarBackend.repository.RoommateProfileRepository;
 import com.anshul.RoomieRadarBackend.repository.UserRepository;
 import com.anshul.RoomieRadarBackend.utils.JwtUtils;
 import lombok.extern.slf4j.Slf4j;
@@ -29,6 +31,9 @@ public class AuthController {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private RoommateProfileRepository roommateProfileRepository;
 
     @Autowired
     private JwtUtils jwtUtil;
@@ -94,7 +99,13 @@ public class AuthController {
             User user = userRepository.findByEmail(request.getEmail()).orElse(null);
             if (user != null && !user.isEmailVerified()) {
                 user.setName(request.getName());
-                user.setPhone(request.getPhone());
+
+                String phone = request.getPhone();
+                if (phone != null && phone.trim().isEmpty()) {
+                    phone = null;
+                }
+                user.setPhone(phone);
+
                 user.setPassword(passwordEncoder.encode(request.getPassword()));
                 user.setRole("student");
                 user.setEmailVerified(false);
@@ -105,12 +116,32 @@ public class AuthController {
                 user = new User();
                 user.setName(request.getName());
                 user.setEmail(request.getEmail());
-                user.setPhone(request.getPhone());
+
+                String phone = request.getPhone();
+                if (phone != null && phone.trim().isEmpty()) {
+                    phone = null;
+                }
+                user.setPhone(phone);
+
                 user.setPassword(passwordEncoder.encode(request.getPassword()));
                 user.setRole("student");
+                user.setGender(request.getGender());
                 user.setEmailVerified(false);
-
+                user.setAge(request.getAge());
                 userRepository.save(user);
+
+                // Create default RoommateProfile
+                RoomateProfile profile = new RoomateProfile();
+                profile.setUser(user);
+                profile.setName(user.getName());
+                profile.setAge(request.getAge());
+                profile.setGender(request.getGender());
+                profile.setHousingStatus("Looking");
+                try {
+                    roommateProfileRepository.save(profile);
+                } catch (Exception e) {
+                    log.error("Failed to create default profile: " + e.getMessage());
+                }
             }
 
             // ✅ Generate and Send OTP
@@ -182,17 +213,23 @@ public class AuthController {
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<User> updateProfile(@RequestBody User updatedUser) {
-        User existingUser = userRepository.findByEmail(updatedUser.getEmail()).orElse(null);
+    public ResponseEntity<User> updateProfile(@RequestBody User updatedUser, Authentication authentication) {
+        String currentEmail = authentication.getName();
+        User existingUser = userRepository.findByEmail(currentEmail).orElse(null);
         if (existingUser != null) {
             existingUser.setName(updatedUser.getName());
-            existingUser.setPhone(updatedUser.getPhone());
-            // Email change would require re-verification, keeping it simple for now
+
+            String phone = updatedUser.getPhone();
+            if (phone != null && phone.trim().isEmpty()) {
+                phone = null;
+            }
+            existingUser.setPhone(phone);
+            // Email cannot be changed here
             userRepository.save(existingUser);
             existingUser.setPassword(null); // Hide password
             return ResponseEntity.ok(existingUser);
         } else {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
 }

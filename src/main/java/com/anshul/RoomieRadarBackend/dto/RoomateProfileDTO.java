@@ -20,6 +20,8 @@ public class RoomateProfileDTO {
     private java.util.List<String> interests;
     private String avatar;
     private String housingStatus;
+    private String gender;
+    private String instagram;
     private boolean deleted;
 
 }

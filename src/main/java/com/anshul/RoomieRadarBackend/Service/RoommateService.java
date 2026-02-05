@@ -137,6 +137,15 @@ public class RoommateService {
         existingProfile.setBio(updatedProfile.getBio());
         existingProfile.setInterests(updatedProfile.getInterests());
         existingProfile.setHousingStatus(updatedProfile.getHousingStatus());
+        existingProfile.setGender(updatedProfile.getGender());
+        existingProfile.setInstagram(updatedProfile.getInstagram());
+        existingProfile.setDeleted(updatedProfile.isDeleted());
+
+        // Sync with User entity
+        if (existingProfile.getUser() != null) {
+            existingProfile.getUser().setGender(updatedProfile.getGender());
+        }
+
         if (updatedProfile.getAvatar() != null) {
             existingProfile.setAvatar(updatedProfile.getAvatar());
         }

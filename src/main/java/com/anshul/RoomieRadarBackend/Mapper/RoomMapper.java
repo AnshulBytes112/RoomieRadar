@@ -19,6 +19,9 @@ public class RoomMapper {
                                 room.getImages(),
                                 room.getTags(),
                                 room.getDescription(),
+                                room.getHouseRules(),
+                                room.getHouseDetails(),
+                                room.getGenderPreference(),
                                 room.getAmenities(),
                                 room.getAvailaibleFrom(),
                                 room.getDeposit(),
@@ -29,6 +32,7 @@ public class RoomMapper {
                                 room.getType() != null ? room.getType().toString() : null,
                                 room.getContactNumber(),
                                 room.getContactEmail(),
+                                room.getMapLink(),
                                 room.getTotalOccupancy() != null ? room.getTotalOccupancy() : 1,
                                 room.getOccupiedCount() != null ? room.getOccupiedCount() : 0,
                                 room.getPostedBy() != null ? new RoomDto.PostedByDto(

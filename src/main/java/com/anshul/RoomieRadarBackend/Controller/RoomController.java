@@ -35,10 +35,12 @@ public class RoomController {
             @RequestParam(required = false) String roomType,
             @RequestParam(required = false) String bedrooms,
             @RequestParam(required = false) String bathrooms,
+            @RequestParam(required = false) String genderPreference,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<RoomDto> rooms = roomService.searchRooms(location, budget, roomType, bedrooms, bathrooms, pageable)
+        Page<RoomDto> rooms = roomService
+                .searchRooms(location, budget, roomType, bedrooms, bathrooms, genderPreference, pageable)
                 .map(RoomMapper::toDto);
         return ResponseEntity.ok(rooms);
     }

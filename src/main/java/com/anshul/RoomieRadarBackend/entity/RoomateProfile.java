@@ -52,6 +52,9 @@ public class RoomateProfile {
     private String gender;
 
     @Column
+    private String instagram;
+
+    @Column
     private String housingStatus;
 
     @OneToOne(fetch = FetchType.LAZY)

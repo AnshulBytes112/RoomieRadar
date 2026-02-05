@@ -52,6 +52,11 @@ public class Room {
 
     @Column(length = 2000)
     private String description;
+    @Column(length = 2000)
+    private String houseRules;
+    @Column(length = 2000)
+    private String houseDetails;
+
     @ElementCollection
     @CollectionTable(name = "room_amenities", joinColumns = @JoinColumn(name = "room_id"))
     @Column(name = "amenity", length = 200)
@@ -77,11 +82,17 @@ public class Room {
     @Column(nullable = true)
     private Integer occupiedCount = 0;
 
+    @Column(length = 20)
+    private String genderPreference;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "posted_by_user_id", nullable = false)
     @JsonIgnoreProperties({ "rooms", "hibernateLazyInitializer", "handler" })
     @JsonBackReference
     private User postedBy;
+
+    @Column(length = 500)
+    private String mapLink;
 
     @Column(nullable = false)
     private boolean deleted = false;

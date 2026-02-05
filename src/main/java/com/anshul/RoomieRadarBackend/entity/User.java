@@ -26,6 +26,9 @@ public class User {
     @Column(unique = true)
     private String phone;
 
+    @Column(length = 20)
+    private String gender;
+
     @Column(nullable = false)
     private String name;
 
@@ -35,6 +38,8 @@ public class User {
     private String role;
 
     private Instant lastActive;
+
+    private Integer age;
 
     @Column(nullable = true)
     private Boolean emailVerified = false;

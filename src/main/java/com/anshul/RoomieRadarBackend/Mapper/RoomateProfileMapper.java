@@ -18,6 +18,8 @@ public class RoomateProfileMapper {
                 roomProfile.getInterests(),
                 roomProfile.getAvatar(),
                 roomProfile.getHousingStatus(),
+                roomProfile.getGender(),
+                roomProfile.getInstagram(),
                 roomProfile.isDeleted());
     }
 }

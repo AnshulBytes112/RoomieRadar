@@ -20,6 +20,9 @@ public class RoomDto {
     private List<String> images;
     private List<String> tags;
     private String description;
+    private String houseRules;
+    private String houseDetails;
+    private String genderPreference;
     private List<String> amenities;
     private String availaibleFrom;
     private String deposit;
@@ -30,6 +33,7 @@ public class RoomDto {
     private String type;
     private String contactNumber;
     private String contactEmail;
+    private String mapLink;
     private int totalOccupancy;
     private int occupiedCount;
     private PostedByDto postedBy;

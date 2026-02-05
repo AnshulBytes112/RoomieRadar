@@ -38,7 +38,10 @@ public class RoomService {
             room1.setArea(room.getArea());
             room1.setImages(room.getImages());
             room1.setTags(room.getTags());
-
+            room1.setHouseRules(room.getHouseRules());
+            room1.setHouseDetails(room.getHouseDetails());
+            room1.setGenderPreference(room.getGenderPreference());
+            room1.setTotalOccupancy(room.getTotalOccupancy());
             room1.setDescription(room.getDescription());
             room1.setAmenities(room.getAmenities());
             room1.setAvailaibleFrom(room.getAvailaibleFrom());
@@ -49,6 +52,8 @@ public class RoomService {
             room1.setFurnished(room.getFurnished());
             room1.setContactNumber(room.getContactNumber());
             room1.setContactEmail(room.getContactEmail());
+            room1.setMapLink(room.getMapLink());
+            room1.setOccupiedCount(room.getOccupiedCount());
 
             room1.setPostedBy(user);
 
@@ -103,7 +108,7 @@ public class RoomService {
     }
 
     public Page<Room> searchRooms(String location, String budget, String roomType, String bedrooms,
-            String bathrooms, Pageable pageable) {
+            String bathrooms, String genderPreference, Pageable pageable) {
         Specification<Room> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(criteriaBuilder.equal(root.get("postedBy").get("deleted"), false));
@@ -155,6 +160,11 @@ public class RoomService {
                 }
             }
 
+            if (genderPreference != null && !genderPreference.isBlank() && !"any".equalsIgnoreCase(genderPreference)) {
+                predicates.add(criteriaBuilder.equal(criteriaBuilder.lower(root.get("genderPreference")),
+                        genderPreference.toLowerCase()));
+            }
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
@@ -192,6 +202,7 @@ public class RoomService {
         room.setBathrooms(roomDetails.getBathrooms());
         room.setType(roomDetails.getType());
         room.setDescription(roomDetails.getDescription());
+        room.setGenderPreference(roomDetails.getGenderPreference());
         room.setAmenities(roomDetails.getAmenities());
         room.setAvailaibleFrom(roomDetails.getAvailaibleFrom());
         room.setDeposit(roomDetails.getDeposit());
@@ -201,6 +212,10 @@ public class RoomService {
         room.setFurnished(roomDetails.getFurnished());
         room.setContactNumber(roomDetails.getContactNumber());
         room.setContactEmail(roomDetails.getContactEmail());
+        room.setTotalOccupancy(roomDetails.getTotalOccupancy());
+        room.setTotalOccupancy(roomDetails.getTotalOccupancy());
+        room.setOccupiedCount(roomDetails.getOccupiedCount());
+        room.setMapLink(roomDetails.getMapLink());
 
         // Update images if provided (optional logic depending on requirements, here
         // replacing)
