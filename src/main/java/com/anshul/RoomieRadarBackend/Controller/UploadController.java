@@ -15,7 +15,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/upload")
-@CrossOrigin(origins = "*")
+
 public class UploadController {
 
     private final Path fileStorageLocation;
@@ -33,7 +33,9 @@ public class UploadController {
     }
 
     @PostMapping("/image")
-    public ResponseEntity<Map<String, String>> uploadFile(@RequestParam("image") MultipartFile file) {
+    public ResponseEntity<Map<String, String>> uploadFile(
+            @RequestParam("image") MultipartFile file,
+            jakarta.servlet.http.HttpServletRequest request) {
         // Basic validation
         if (file.isEmpty()) {
             throw new RuntimeException("Failed to store empty file.");
@@ -48,48 +50,23 @@ public class UploadController {
             }
 
             // Copy file to the target location (Replacing existing file with the same name)
-            // We strip the content type check for now, but in production validating it is
-            // good.
             Path targetLocation = this.fileStorageLocation.resolve(fileName);
             Files.copy(file.getInputStream(), targetLocation, StandardCopyOption.REPLACE_EXISTING);
 
-            // Return the download URL
-            // Adjust this to be a full URL if needed, but often relative is fine if
-            // frontend handles it.
-            // Based on frontend usage: <img src={formData.avatar} ... />
-            // If the frontend is on localhost:5173 and backend on localhost:8080, relative
-            // path might fail
-            // if the image tag assumes relative to frontend origin.
-            // BUT api.ts sets API_BASE_URL.
-            // Wait, standard HTML <img src="/uploads/foo.jpg"> will try to fetch from
-            // Frontend Origin (localhost:5173).
-            // We need to return the FULL URL including backend host if they are on
-            // different ports.
-            // OR the frontend needs to prepend API_BASE_URL.
+            // Build dynamic URL from request - works for localhost, network IPs, and
+            // production
+            String scheme = request.getScheme();
+            String serverName = request.getServerName();
+            int serverPort = request.getServerPort();
 
-            // Looking at Profile.tsx: <img src={formData.avatar} ... />
-            // If avatar is just "/uploads/...", it will break on dev server.
-
-            // I should probably return the full URL if possible, or assume the user knows.
-            // Safer to return "/uploads/..." and let's check if I can make it work.
-            // Actually, for simplicity, I should probably append the scheme and host.
-            // specific to local dev usually http://localhost:8080.
-
-            // Let's rely on a simple relative path for now, but maybe the frontend needs
-            // patching?
-            // "const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';" in api.ts.
-            // Profile.tsx does NOT seem to prepend API_BASE_URL.
-
-            // So if I return "/uploads/xyz.jpg", frontend loads
-            // "http://localhost:5173/uploads/xyz.jpg" -> 404.
-            // I should return "http://localhost:8080/uploads/xyz.jpg".
-
-            String fileDownloadUri = "http://localhost:8080" + DOWNLOAD_URI + fileName;
-            // TODO: In a real app, inject the hostname/port.
+            String fileDownloadUri;
+            if ((scheme.equals("http") && serverPort == 80) || (scheme.equals("https") && serverPort == 443)) {
+                fileDownloadUri = scheme + "://" + serverName + DOWNLOAD_URI + fileName;
+            } else {
+                fileDownloadUri = scheme + "://" + serverName + ":" + serverPort + DOWNLOAD_URI + fileName;
+            }
 
             Map<String, String> response = new HashMap<>();
-            // The frontend expects "url" or just the string?
-            // handleImageUpload in Profile.tsx: const imageUrl = response.url || response;
             response.put("url", fileDownloadUri);
 
             return ResponseEntity.ok(response);

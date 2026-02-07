@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-@CrossOrigin(origins = "*")
+
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
@@ -68,10 +68,21 @@ public class AuthController {
                         .body(Map.of("message", "Please verify your email first"));
             }
 
-            // Build response map
+            // Build response map with only necessary user fields (avoid serialization
+            // issues)
+            Map<String, Object> userData = new HashMap<>();
+            userData.put("id", user.getId());
+            userData.put("email", user.getEmail());
+            userData.put("name", user.getName());
+            userData.put("phone", user.getPhone());
+            userData.put("gender", user.getGender());
+            userData.put("age", user.getAge());
+            userData.put("role", user.getRole());
+            userData.put("emailVerified", user.isEmailVerified());
+
             Map<String, Object> response = new HashMap<>();
             response.put("token", jwt);
-            response.put("user", user);
+            response.put("user", userData);
 
             return ResponseEntity.ok(response);
 
