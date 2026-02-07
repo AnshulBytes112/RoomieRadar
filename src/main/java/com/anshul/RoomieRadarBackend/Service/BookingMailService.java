@@ -1,9 +1,5 @@
 package com.anshul.RoomieRadarBackend.Service;
 
-import org.springframework.beans.factory.annotation.Value;
-
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -12,13 +8,10 @@ import java.time.LocalDate;
 @Service
 public class BookingMailService {
 
-    private final JavaMailSender mailSender;
+    private final EmailService emailService;
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
-
-    public BookingMailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+    public BookingMailService(EmailService emailService) {
+        this.emailService = emailService;
     }
 
     @Async
@@ -96,25 +89,12 @@ public class BookingMailService {
         sendEmail(ownerEmail, subject, body);
     }
 
-    private void sendEmail(String to, String subject, String body) {
-        if (fromEmail == null || fromEmail.isEmpty()) {
-            System.err.println("CRITICAL: spring.mail.username is not configured! Cannot send email.");
-            return;
-        }
-        System.out.println("DEBUG: Sending email from: " + fromEmail + " to: " + to);
+    public void sendEmail(String to, String subject, String body) {
         try {
-            SimpleMailMessage mail = new SimpleMailMessage();
-            mail.setFrom(fromEmail);
-            mail.setTo(to);
-            mail.setSubject(subject);
-            mail.setText(body);
-
-            mailSender.send(mail);
-            System.out.println("DEBUG: Email sent successfully to: " + to);
+            emailService.sendEmail(to, subject, body);
         } catch (Exception e) {
-            System.err.println("ERROR: Failed to send email to " + to + ": " + e.getMessage());
-            e.printStackTrace();
-            throw e;
+            System.err.println("ERROR: Failed to send booking email to " + to + ": " + e.getMessage());
+            // No need to re-throw, EmailService already logs errors
         }
     }
 

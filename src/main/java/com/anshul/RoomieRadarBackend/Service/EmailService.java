@@ -25,7 +25,7 @@ public class EmailService {
         this.restTemplate = restTemplate;
     }
 
-    private void sendEmailViaResend(String to, String subject, String content) {
+    public void sendEmail(String to, String subject, String content) {
         String url = "https://api.resend.com/emails";
 
         HttpHeaders headers = new HttpHeaders();
@@ -54,7 +54,7 @@ public class EmailService {
         String body = "Hello,\n\nYour OTP for account verification is: " + otp
                 + "\n\nThis code will expire in 10 minutes.\n\nRegards,\nRoomieRadar Team";
 
-        sendEmailViaResend(to, subject, body);
+        sendEmail(to, subject, body);
     }
 
     public void sendPasswordResetOtpEmail(String to, String otp) {
@@ -62,6 +62,6 @@ public class EmailService {
         String body = "Hello,\n\nWe received a request to reset your password. Use the security code below to proceed:\n\n"
                 + otp + "\n\nIf you did not request this, please ignore this email.\n\nRegards,\nRoomieRadar Team";
 
-        sendEmailViaResend(to, subject, body);
+        sendEmail(to, subject, body);
     }
 }
