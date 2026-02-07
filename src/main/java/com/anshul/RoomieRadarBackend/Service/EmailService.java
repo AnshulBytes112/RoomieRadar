@@ -1,19 +1,52 @@
 package com.anshul.RoomieRadarBackend.Service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import java.util.HashMap;
+import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class EmailService {
-    private final JavaMailSender mailSender;
+    private final RestTemplate restTemplate;
 
-    @Value("${spring.mail.username}")
+    @Value("${resend.api.key}")
+    private String resendApiKey;
+
+    @Value("${resend.from.email}")
     private String fromEmail;
 
-    public EmailService(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
+    public EmailService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
+    private void sendEmailViaResend(String to, String subject, String content) {
+        String url = "https://api.resend.com/emails";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + resendApiKey);
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("from", "RoomieRadar <" + fromEmail + ">");
+        body.put("to", to);
+        body.put("subject", subject);
+        body.put("text", content); // Using plain text for now, can use "html" for formatted emails
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+        try {
+            restTemplate.postForEntity(url, entity, String.class);
+            log.info("Email sent successfully to: {}", to);
+        } catch (Exception e) {
+            log.error("Failed to send email via Resend to {}: {}", to, e.getMessage());
+            // In a real app, you might want to retry or throw a custom exception
+        }
     }
 
     public void sendOtpEmail(String to, String otp) {
@@ -21,13 +54,7 @@ public class EmailService {
         String body = "Hello,\n\nYour OTP for account verification is: " + otp
                 + "\n\nThis code will expire in 10 minutes.\n\nRegards,\nRoomieRadar Team";
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(body);
-
-        mailSender.send(message);
+        sendEmailViaResend(to, subject, body);
     }
 
     public void sendPasswordResetOtpEmail(String to, String otp) {
@@ -35,12 +62,6 @@ public class EmailService {
         String body = "Hello,\n\nWe received a request to reset your password. Use the security code below to proceed:\n\n"
                 + otp + "\n\nIf you did not request this, please ignore this email.\n\nRegards,\nRoomieRadar Team";
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(fromEmail);
-        message.setTo(to);
-        message.setSubject(subject);
-        message.setText(body);
-
-        mailSender.send(message);
+        sendEmailViaResend(to, subject, body);
     }
 }
