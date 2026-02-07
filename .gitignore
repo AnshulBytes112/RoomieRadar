@@ -42,3 +42,14 @@ src/main/resources/application.yml
 Thumbs.db
 
 application.properties
+.env
+.env.*
+application-prod.properties
+application-dev.properties
+
+# Logs
+*.log
+
+
+# Uploads / user files
+uploads/
