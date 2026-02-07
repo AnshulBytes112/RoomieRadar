@@ -33,23 +33,18 @@ build/
 .vscode/
 
 # Secrets / sensitive config
-src/main/resources/application.properties
 .env
+.env.*
 src/main/resources/application.yml
+src/main/resources/application-prod.properties
+src/main/resources/application-dev.properties
 
 # OS
 .DS_Store
 Thumbs.db
 
-application.properties
-.env
-.env.*
-application-prod.properties
-application-dev.properties
-
 # Logs
 *.log
-
 
 # Uploads / user files
 uploads/

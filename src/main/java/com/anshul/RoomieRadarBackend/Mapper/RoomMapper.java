@@ -2,6 +2,7 @@ package com.anshul.RoomieRadarBackend.Mapper;
 
 import com.anshul.RoomieRadarBackend.dto.RoomDto;
 import com.anshul.RoomieRadarBackend.entity.Room;
+import java.util.ArrayList;
 
 public class RoomMapper {
         public static RoomDto toDto(Room room) {
@@ -16,13 +17,13 @@ public class RoomMapper {
                                 room.getArea(),
                                 room.getBedrooms(),
                                 room.getBathrooms(),
-                                room.getImages(),
-                                room.getTags(),
+                                room.getImages() != null ? new ArrayList<>(room.getImages()) : null,
+                                room.getTags() != null ? new ArrayList<>(room.getTags()) : null,
                                 room.getDescription(),
                                 room.getHouseRules(),
                                 room.getHouseDetails(),
                                 room.getGenderPreference(),
-                                room.getAmenities(),
+                                room.getAmenities() != null ? new ArrayList<>(room.getAmenities()) : null,
                                 room.getAvailaibleFrom(),
                                 room.getDeposit(),
                                 room.getMaintenance(),

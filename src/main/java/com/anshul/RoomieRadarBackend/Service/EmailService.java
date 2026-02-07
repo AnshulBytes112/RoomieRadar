@@ -29,4 +29,18 @@ public class EmailService {
 
         mailSender.send(message);
     }
+
+    public void sendPasswordResetOtpEmail(String to, String otp) {
+        String subject = "Reset your RoomieRadar Password";
+        String body = "Hello,\n\nWe received a request to reset your password. Use the security code below to proceed:\n\n"
+                + otp + "\n\nIf you did not request this, please ignore this email.\n\nRegards,\nRoomieRadar Team";
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom(fromEmail);
+        message.setTo(to);
+        message.setSubject(subject);
+        message.setText(body);
+
+        mailSender.send(message);
+    }
 }

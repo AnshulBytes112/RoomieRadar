@@ -40,8 +40,7 @@ public class RoomController {
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<RoomDto> rooms = roomService
-                .searchRooms(location, budget, roomType, bedrooms, bathrooms, genderPreference, pageable)
-                .map(RoomMapper::toDto);
+                .searchRooms(location, budget, roomType, bedrooms, bathrooms, genderPreference, pageable);
         return ResponseEntity.ok(rooms);
     }
 
@@ -50,8 +49,7 @@ public class RoomController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<RoomDto> rooms = roomService.getAllRooms(pageable)
-                .map(RoomMapper::toDto);
+        Page<RoomDto> rooms = roomService.getAllRooms(pageable);
         return ResponseEntity.ok(rooms);
     }
 
@@ -67,29 +65,23 @@ public class RoomController {
 
     @GetMapping("/{id}")
     public ResponseEntity<RoomDto> getRoomById(@PathVariable Long id) {
-        Room room = roomService.getRoomById(id);
+        RoomDto room = roomService.getRoomById(id);
         if (room == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(RoomMapper.toDto(room));
+        return ResponseEntity.ok(room);
     }
 
     @GetMapping("/my-listings")
     public ResponseEntity<List<RoomDto>> getMyListings(Authentication authentication) {
         String email = authentication.getName();
-        List<RoomDto> rooms = roomService.getRoomsByUser(email)
-                .stream()
-                .map(RoomMapper::toDto)
-                .toList();
+        List<RoomDto> rooms = roomService.getRoomsByUser(email);
         return ResponseEntity.ok(rooms);
     }
 
     @GetMapping("/user/{userId}")
     public ResponseEntity<List<RoomDto>> getRoomsByUserId(@PathVariable Long userId) {
-        List<RoomDto> rooms = roomService.getRoomsByUserId(userId)
-                .stream()
-                .map(RoomMapper::toDto)
-                .toList();
+        List<RoomDto> rooms = roomService.getRoomsByUserId(userId);
         return ResponseEntity.ok(rooms);
     }
 

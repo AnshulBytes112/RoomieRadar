@@ -2,8 +2,8 @@ package com.anshul.RoomieRadarBackend.Controller;
 
 import com.anshul.RoomieRadarBackend.Service.EmailService;
 import com.anshul.RoomieRadarBackend.Service.OtpService;
-import com.anshul.RoomieRadarBackend.dto.LoginRequest;
-import com.anshul.RoomieRadarBackend.dto.RegisterRequest;
+import com.anshul.RoomieRadarBackend.dto.*;
+import com.anshul.RoomieRadarBackend.Mapper.UserMapper;
 import com.anshul.RoomieRadarBackend.entity.RoomateProfile;
 import com.anshul.RoomieRadarBackend.entity.User;
 import com.anshul.RoomieRadarBackend.repository.RoommateProfileRepository;
@@ -17,6 +17,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -47,6 +48,7 @@ public class AuthController {
     @Autowired
     private EmailService emailService;
 
+    @Transactional
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
         log.info("Received login request for identifier: '{}'", loginRequest.getIdentifier());
@@ -68,21 +70,9 @@ public class AuthController {
                         .body(Map.of("message", "Please verify your email first"));
             }
 
-            // Build response map with only necessary user fields (avoid serialization
-            // issues)
-            Map<String, Object> userData = new HashMap<>();
-            userData.put("id", user.getId());
-            userData.put("email", user.getEmail());
-            userData.put("name", user.getName());
-            userData.put("phone", user.getPhone());
-            userData.put("gender", user.getGender());
-            userData.put("age", user.getAge());
-            userData.put("role", user.getRole());
-            userData.put("emailVerified", user.isEmailVerified());
-
             Map<String, Object> response = new HashMap<>();
             response.put("token", jwt);
-            response.put("user", userData);
+            response.put("user", UserMapper.toDto(user));
 
             return ResponseEntity.ok(response);
 
@@ -169,6 +159,7 @@ public class AuthController {
         }
     }
 
+    @Transactional
     @PostMapping("/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request) {
         String email = request.get("email");
@@ -189,7 +180,7 @@ public class AuthController {
                 Map<String, Object> response = new HashMap<>();
                 response.put("message", "Email verified successfully");
                 response.put("token", token);
-                response.put("user", user);
+                response.put("user", UserMapper.toDto(user));
                 return ResponseEntity.ok(response);
             }
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
@@ -209,22 +200,63 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<User> getCurrentUser(Authentication authentication) {
+    @Transactional(readOnly = true)
+    public ResponseEntity<UserDTO> getCurrentUser(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
         String email = authentication.getName();
         User user = userRepository.findByEmail(email).orElse(null);
         if (user != null) {
-            user.setPassword(null); // Hide password
-            return ResponseEntity.ok(user);
+            return ResponseEntity.ok(UserMapper.toDto(user));
         } else {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
     }
 
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        if (email == null || email.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+        }
+
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            // Safety: Don't reveal if user exists or not, but for this specific UX we might
+            // want to let them know
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
+        }
+
+        String otp = otpService.generateOtp(email);
+        emailService.sendPasswordResetOtpEmail(email, otp);
+
+        return ResponseEntity.ok(Map.of("success", true, "message", "Reset code sent to your email"));
+    }
+
+    @Transactional
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody ResetPasswordRequest request) {
+        if (request.getEmail() == null || request.getOtp() == null || request.getNewPassword() == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Missing required fields"));
+        }
+
+        if (otpService.verifyOtp(request.getEmail(), request.getOtp())) {
+            User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+            if (user != null) {
+                user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+                userRepository.save(user);
+                return ResponseEntity.ok(Map.of("success", true, "message", "Password reset successfully"));
+            }
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "User not found"));
+        }
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Invalid or expired reset code"));
+    }
+
     @PutMapping("/profile")
-    public ResponseEntity<User> updateProfile(@RequestBody User updatedUser, Authentication authentication) {
+    @Transactional
+    public ResponseEntity<UserDTO> updateProfile(@RequestBody User updatedUser, Authentication authentication) {
         String currentEmail = authentication.getName();
         User existingUser = userRepository.findByEmail(currentEmail).orElse(null);
         if (existingUser != null) {
@@ -237,8 +269,7 @@ public class AuthController {
             existingUser.setPhone(phone);
             // Email cannot be changed here
             userRepository.save(existingUser);
-            existingUser.setPassword(null); // Hide password
-            return ResponseEntity.ok(existingUser);
+            return ResponseEntity.ok(UserMapper.toDto(existingUser));
         } else {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }

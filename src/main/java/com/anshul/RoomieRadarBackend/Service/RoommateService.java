@@ -1,8 +1,6 @@
 package com.anshul.RoomieRadarBackend.Service;
 
-import com.anshul.RoomieRadarBackend.Mapper.RoomMapper;
 import com.anshul.RoomieRadarBackend.Mapper.RoomateProfileMapper;
-import com.anshul.RoomieRadarBackend.dto.RoomDto;
 import com.anshul.RoomieRadarBackend.dto.RoomateProfileDTO;
 import com.anshul.RoomieRadarBackend.entity.RoomateProfile;
 import com.anshul.RoomieRadarBackend.entity.User;
@@ -22,6 +20,7 @@ public class RoommateService {
     @Autowired
     RoommateProfileRepository roomateProfileRepository;
 
+    @org.springframework.transaction.annotation.Transactional
     public RoomateProfileDTO createRoommate(RoomateProfile roomateProfile, User user) {
         try {
             RoomateProfile newProfile = new RoomateProfile();
@@ -43,6 +42,7 @@ public class RoommateService {
         }
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public Page<RoomateProfileDTO> getAllRoommates(Pageable pageable) {
         Specification<RoomateProfile> spec = (root, query, criteriaBuilder) -> criteriaBuilder.and(
                 criteriaBuilder.equal(root.get("user").get("deleted"), false),
@@ -51,6 +51,7 @@ public class RoommateService {
         return profiles.map(RoomateProfileMapper::toDto);
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public Page<RoomateProfileDTO> searchRoommates(String ageRange, String lifestyle, String budget, String location,
             String occupation, String gender, Pageable pageable) {
 
@@ -114,12 +115,14 @@ public class RoommateService {
         return roomateProfileRepository.findAll(spec, pageable).map(RoomateProfileMapper::toDto);
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public RoomateProfileDTO getRoommateById(Long id) {
         RoomateProfile profile = roomateProfileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Profile not found"));
         return RoomateProfileMapper.toDto(profile);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public RoomateProfileDTO updateRoommate(Long id, RoomateProfile updatedProfile, User user) {
         RoomateProfile existingProfile = roomateProfileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Profile not found"));
@@ -154,6 +157,7 @@ public class RoommateService {
         return RoomateProfileMapper.toDto(existingProfile);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public boolean deleteRoommateProfile(Long id, User user) {
         RoomateProfile profile = roomateProfileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Profile not found"));

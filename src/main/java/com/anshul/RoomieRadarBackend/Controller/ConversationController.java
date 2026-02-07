@@ -1,34 +1,25 @@
 package com.anshul.RoomieRadarBackend.Controller;
 
-import com.anshul.RoomieRadarBackend.entity.User;
-import com.anshul.RoomieRadarBackend.Service.ChatService;
 import com.anshul.RoomieRadarBackend.dto.SendMessageDTO;
-import com.anshul.RoomieRadarBackend.repository.MessageRepository;
-import com.anshul.RoomieRadarBackend.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
 import java.time.Instant;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 // ConversationController.java
 @RestController
 @RequestMapping("/api/conversations")
-@RequiredArgsConstructor
 public class ConversationController {
-    private final ChatService chatService;
+    private final com.anshul.RoomieRadarBackend.Service.ChatService chatService;
+    private final com.anshul.RoomieRadarBackend.repository.UserRepository userRepository;
 
-    @Autowired
-    private MessageRepository messageRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    @org.springframework.beans.factory.annotation.Autowired
+    public ConversationController(com.anshul.RoomieRadarBackend.Service.ChatService chatService,
+            com.anshul.RoomieRadarBackend.repository.UserRepository userRepository) {
+        this.chatService = chatService;
+        this.userRepository = userRepository;
+    }
 
     @GetMapping
     public ResponseEntity<?> list(Authentication authentication) {
@@ -38,40 +29,7 @@ public class ConversationController {
             userRepository.save(user);
         });
 
-        var convos = chatService.getConversationsForEmail(email);
-        return ResponseEntity.ok(convos.stream().map(c -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", c.getId());
-            map.put("lastMessageAt", c.getLastMessageAt());
-
-            // Participant Details
-            User otherUser = c.getParticipants().stream()
-                    .filter(u -> !u.getEmail().equals(email))
-                    .findFirst()
-                    .orElse(null);
-
-            if (otherUser != null) {
-                var rp = otherUser.getRoomateProfile();
-                Instant lastActive = otherUser.getLastActive();
-                boolean isActive = lastActive != null && lastActive.isAfter(Instant.now().minusSeconds(90));
-                Map<String, Object> participant = new HashMap<>();
-                participant.put("id", otherUser.getId());
-                participant.put("name", (rp != null && rp.getName() != null) ? rp.getName() : otherUser.getName());
-                participant.put("avatar", (rp != null && rp.getAvatar() != null) ? rp.getAvatar() : "");
-                participant.put("lastActive", lastActive);
-                participant.put("isActive", isActive);
-                map.put("otherParticipant", participant);
-            }
-
-            // Latest Message Snippet
-            messageRepository.findFirstByConversationOrderByCreatedAtDesc(c).ifPresent(m -> {
-                map.put("lastMessage", Map.of(
-                        "content", m.getContent(),
-                        "createdAt", m.getCreatedAt()));
-            });
-
-            return map;
-        }).collect(Collectors.toList()));
+        return ResponseEntity.ok(chatService.getConversationsForEmail(email));
     }
 
     @GetMapping("/{id}/messages")
@@ -81,18 +39,7 @@ public class ConversationController {
             user.setLastActive(Instant.now());
             userRepository.save(user);
         });
-        var msgs = chatService.getMessagesForEmail(id, email);
-        var out = msgs.stream()
-                .map(m -> {
-                    Map<String, Object> map = new HashMap<>();
-                    map.put("id", m.getId());
-                    map.put("senderId", m.getSender().getId());
-                    map.put("content", m.getContent());
-                    map.put("createdAt", m.getCreatedAt());
-                    return map;
-                })
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(out);
+        return ResponseEntity.ok(chatService.getMessagesForEmail(id, email));
     }
 
     @PostMapping("/{id}/messages")
@@ -104,7 +51,6 @@ public class ConversationController {
             userRepository.save(user);
         });
 
-        var m = chatService.sendMessageByEmail(email, id, dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("id", m.getId()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(chatService.sendMessageByEmail(email, id, dto));
     }
 }

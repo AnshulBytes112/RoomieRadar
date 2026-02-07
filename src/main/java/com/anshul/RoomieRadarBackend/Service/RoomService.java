@@ -26,6 +26,7 @@ public class RoomService {
     @Autowired
     private RoomRepository roomRepository;
 
+    @org.springframework.transaction.annotation.Transactional
     public RoomDto createRoom(Room room, User user) {
         try {
             Room room1 = new Room();
@@ -50,7 +51,11 @@ public class RoomService {
             room1.setParking(room.getParking());
             room1.setPetFriendly(room.getPetFriendly());
             room1.setFurnished(room.getFurnished());
-            room1.setContactNumber(room.getContactNumber());
+            String cNumber = room.getContactNumber();
+            if (cNumber == null || cNumber.isBlank()) {
+                cNumber = user.getPhone();
+            }
+            room1.setContactNumber(cNumber);
             room1.setContactEmail(room.getContactEmail());
             room1.setMapLink(room.getMapLink());
             room1.setOccupiedCount(room.getOccupiedCount());
@@ -66,14 +71,16 @@ public class RoomService {
         }
     }
 
-    public Page<Room> getAllRooms(Pageable pageable) {
-        return roomRepository.findAll(pageable);
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Page<RoomDto> getAllRooms(Pageable pageable) {
+        return roomRepository.findAll(pageable).map(RoomMapper::toDto);
     }
 
     public void savenewentry(Room newRoom) {
         roomRepository.save(newRoom);
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public boolean deleteRoom(Long id, String email) {
         if (id == null)
             return false;
@@ -102,12 +109,14 @@ public class RoomService {
         return true;
     }
 
-    public Room getRoomById(Long id) {
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public RoomDto getRoomById(Long id) {
         Optional<Room> roomOpt = roomRepository.findById(id);
-        return roomOpt.orElse(null);
+        return roomOpt.map(RoomMapper::toDto).orElse(null);
     }
 
-    public Page<Room> searchRooms(String location, String budget, String roomType, String bedrooms,
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public Page<RoomDto> searchRooms(String location, String budget, String roomType, String bedrooms,
             String bathrooms, String genderPreference, Pageable pageable) {
         Specification<Room> spec = (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
@@ -168,25 +177,30 @@ public class RoomService {
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
-        return roomRepository.findAll(spec, pageable);
+        return roomRepository.findAll(spec, pageable).map(RoomMapper::toDto);
     }
 
-    public List<Room> getRoomsByUser(String email) {
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<RoomDto> getRoomsByUser(String email) {
         User user = userRepository.findByEmail(email).orElseThrow(() -> new RuntimeException("User not found"));
         return roomRepository.findByPostedBy(user).stream()
                 .filter(room -> !room.isDeleted())
+                .map(RoomMapper::toDto)
                 .toList();
     }
 
-    public List<Room> getRoomsByUserId(Long userId) {
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
+    public List<RoomDto> getRoomsByUserId(Long userId) {
         if (userId == null)
             return new java.util.ArrayList<>();
         User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
         return roomRepository.findByPostedBy(user).stream()
                 .filter(room -> !room.isDeleted())
+                .map(RoomMapper::toDto)
                 .toList();
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public RoomDto updateRoom(Long id, Room roomDetails, String email) {
         Room room = roomRepository.findById(id).orElseThrow(() -> new RuntimeException("Room not found"));
 
@@ -210,9 +224,12 @@ public class RoomService {
         room.setParking(roomDetails.getParking());
         room.setPetFriendly(roomDetails.getPetFriendly());
         room.setFurnished(roomDetails.getFurnished());
-        room.setContactNumber(roomDetails.getContactNumber());
+        String cNumber = roomDetails.getContactNumber();
+        if (cNumber == null || cNumber.isBlank()) {
+            cNumber = room.getPostedBy().getPhone();
+        }
+        room.setContactNumber(cNumber);
         room.setContactEmail(roomDetails.getContactEmail());
-        room.setTotalOccupancy(roomDetails.getTotalOccupancy());
         room.setTotalOccupancy(roomDetails.getTotalOccupancy());
         room.setOccupiedCount(roomDetails.getOccupiedCount());
         room.setMapLink(roomDetails.getMapLink());

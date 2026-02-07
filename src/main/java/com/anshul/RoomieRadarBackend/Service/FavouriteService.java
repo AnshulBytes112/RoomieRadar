@@ -1,5 +1,7 @@
 package com.anshul.RoomieRadarBackend.Service;
 
+import com.anshul.RoomieRadarBackend.Mapper.FavouriteMapper;
+import com.anshul.RoomieRadarBackend.dto.FavouriteDTO;
 import com.anshul.RoomieRadarBackend.entity.Favourite;
 import com.anshul.RoomieRadarBackend.entity.Room;
 import com.anshul.RoomieRadarBackend.entity.User;
@@ -10,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -17,23 +20,28 @@ public class FavouriteService {
     private final FavouriteRepository favouriteRepository;
     private final RoomRepository roomRepository;
 
-    public List<Favourite> getFavouritesByUser(User user) {
-        return favouriteRepository.findByUser(user);
+    @Transactional(readOnly = true)
+    public List<FavouriteDTO> getFavouritesByUser(User user) {
+        return favouriteRepository.findByUser(user).stream()
+                .map(FavouriteMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Transactional
-    public Favourite addFavourite(User user, @SuppressWarnings("null") Long roomId) {
+    public FavouriteDTO addFavourite(User user, @SuppressWarnings("null") Long roomId) {
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new RuntimeException("Room not found"));
 
+        Favourite favorite;
         if (favouriteRepository.existsByUserAndRoom(user, room)) {
-            return favouriteRepository.findByUserAndRoom(user, room).get();
+            favorite = favouriteRepository.findByUserAndRoom(user, room).get();
+        } else {
+            favorite = new Favourite();
+            favorite.setUser(user);
+            favorite.setRoom(room);
+            favorite = favouriteRepository.save(favorite);
         }
-
-        Favourite favourite = new Favourite();
-        favourite.setUser(user);
-        favourite.setRoom(room);
-        return favouriteRepository.save(favourite);
+        return FavouriteMapper.toDto(favorite);
     }
 
     @Transactional

@@ -13,4 +13,6 @@ public interface MessageRequestRepository extends JpaRepository<MessageRequest, 
     Optional<MessageRequest> findByFromUserAndToUserAndStatus(User from, User to, MessageRequest.RequestStatus status);
 
     List<MessageRequest> findByFromUserAndStatus(User user, MessageRequest.RequestStatus requestStatus);
+
+    List<MessageRequest> findByFromUserAndStatusNot(User user, MessageRequest.RequestStatus status);
 }

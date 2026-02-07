@@ -1,12 +1,9 @@
-
 package com.anshul.RoomieRadarBackend.Service;
 
 import com.anshul.RoomieRadarBackend.Model.Conversation;
 import com.anshul.RoomieRadarBackend.Model.Message;
 import com.anshul.RoomieRadarBackend.Model.MessageRequest;
-import com.anshul.RoomieRadarBackend.dto.CreateRequestDTO;
-import com.anshul.RoomieRadarBackend.dto.ResponseDTO;
-import com.anshul.RoomieRadarBackend.dto.SendMessageDTO;
+import com.anshul.RoomieRadarBackend.dto.*;
 import com.anshul.RoomieRadarBackend.entity.User;
 import com.anshul.RoomieRadarBackend.repository.ConversationRepository;
 import com.anshul.RoomieRadarBackend.repository.MessageRepository;
@@ -20,8 +17,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -133,7 +132,7 @@ public class ChatService {
     }
 
     @Transactional
-    public Message sendMessage(Long senderId, Long conversationId, SendMessageDTO dto) {
+    public MessageDTO sendMessage(Long senderId, Long conversationId, SendMessageDTO dto) {
         Conversation conv = convRepo.findById(conversationId)
                 .orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
         if (!conv.hasParticipant(senderId))
@@ -152,11 +151,11 @@ public class ChatService {
 
         // publish to websocket topic for this conversation
         String topic = "/topic/conversations." + conv.getId();
+        MessageDTO messageDto = new MessageDTO(m.getId(), sender.getId(), m.getContent(), m.getCreatedAt());
         messagingTemplate.convertAndSend(topic, Map.of(
                 "type", "NEW_MESSAGE",
-                "message", Map.of("id", m.getId(), "senderId", sender.getId(), "content", m.getContent(), "createdAt",
-                        m.getCreatedAt())));
-        return m;
+                "message", messageDto));
+        return messageDto;
     }
 
     @Transactional(readOnly = true)
@@ -166,26 +165,67 @@ public class ChatService {
     }
 
     @Transactional(readOnly = true)
-    public List<Conversation> getConversationsFor(Long userId) {
-        return convRepo.findByParticipant(userId);
+    public List<ConversationDTO> getConversationsFor(Long userId, String email) {
+        List<Conversation> convs = convRepo.findByParticipant(userId);
+        return convs.stream().map(c -> {
+            ConversationDTO dto = new ConversationDTO();
+            dto.setId(c.getId());
+            dto.setLastMessageAt(c.getLastMessageAt());
+
+            // Participant Details
+            User otherUser = c.getParticipants().stream()
+                    .filter(u -> !u.getEmail().equals(email))
+                    .findFirst()
+                    .orElse(null);
+
+            if (otherUser != null) {
+                var rp = otherUser.getRoomateProfile();
+                Instant lastActive = otherUser.getLastActive();
+                boolean isActive = lastActive != null && lastActive.isAfter(Instant.now().minusSeconds(90));
+
+                ConversationDTO.ParticipantDTO participant = new ConversationDTO.ParticipantDTO(
+                        otherUser.getId(),
+                        (rp != null && rp.getName() != null) ? rp.getName() : otherUser.getName(),
+                        (rp != null && rp.getAvatar() != null) ? rp.getAvatar() : "",
+                        lastActive,
+                        isActive);
+                dto.setOtherParticipant(participant);
+            }
+
+            // Latest Message Snippet
+            msgRepo.findFirstByConversationOrderByCreatedAtDesc(c).ifPresent(m -> {
+                dto.setLastMessage(new ConversationDTO.LastMessageDTO(m.getContent(), m.getCreatedAt()));
+            });
+
+            return dto;
+        }).collect(java.util.stream.Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<Message> getMessages(Long conversationId, Long userId) {
+    public List<MessageDTO> getMessages(Long conversationId, Long userId) {
         Conversation conv = convRepo.findById(conversationId)
                 .orElseThrow(() -> new EntityNotFoundException("Conversation not found"));
         if (!conv.hasParticipant(userId))
             throw new AccessDeniedException("Not a participant");
-        return msgRepo.findByConversationOrderByCreatedAtAsc(conv);
+        return msgRepo.findByConversationOrderByCreatedAtAsc(conv).stream()
+                .map(m -> new MessageDTO(m.getId(), m.getSender().getId(), m.getContent(), m.getCreatedAt()))
+                .collect(java.util.stream.Collectors.toList());
     }
 
-    public List<MessageRequest> getPendingRequestsForEmail(String email) {
-        var user = userRepo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found: " + email));
-
-        // return reqRepo.findByToUserAndStatus(user,
-        // MessageRequest.RequestStatus.PENDING);
-        return reqRepo.findByToUserAndStatus(user, MessageRequest.RequestStatus.PENDING);
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getPendingRequestsForEmail(String email) {
+        User user = userRepo.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        List<MessageRequest> list = reqRepo.findByToUserAndStatus(user, MessageRequest.RequestStatus.PENDING);
+        return list.stream().map(r -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", r.getId());
+            map.put("fromUserId", r.getFromUser() != null ? r.getFromUser().getId() : null);
+            map.put("fromEmail", r.getFromUser() != null ? r.getFromUser().getEmail() : null);
+            map.put("fromName", r.getFromUser() != null ? r.getFromUser().getName() : null);
+            map.put("message", r.getMessage());
+            map.put("createdAt", r.getCreatedAt());
+            return map;
+        }).collect(Collectors.toList());
     }
 
     public Conversation respondToRequestByEmail(String email, Long id, ResponseDTO dto) {
@@ -209,32 +249,45 @@ public class ChatService {
         return convRepo.findBetweenUsers(sender.getId(), receiver.getId()).isPresent();
     }
 
-    public List<Conversation> getConversationsForEmail(String email) {
+    @Transactional(readOnly = true)
+    public List<ConversationDTO> getConversationsForEmail(String email) {
         var user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
-        return getConversationsFor(user.getId());
+        return getConversationsFor(user.getId(), email);
     }
 
-    public List<Message> getMessagesForEmail(Long id, String email) {
+    @Transactional(readOnly = true)
+    public List<MessageDTO> getMessagesForEmail(Long id, String email) {
         var user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
         return getMessages(id, user.getId());
     }
 
-    public Message sendMessageByEmail(String email, Long id, SendMessageDTO dto) {
+    @Transactional
+    public MessageDTO sendMessageByEmail(String email, Long id, SendMessageDTO dto) {
         var user = userRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("User not found: " + email));
 
         return sendMessage(user.getId(), id, dto);
     }
 
-    public List<MessageRequest> getSentRequestsForEmail(String email) {
-        var user = userRepo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found: " + email));
-
-        return reqRepo.findByFromUserAndStatus(user, MessageRequest.RequestStatus.PENDING);
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getSentRequestsForEmail(String email) {
+        User user = userRepo.findByEmail(email).orElseThrow(() -> new EntityNotFoundException("User not found"));
+        List<MessageRequest> list = reqRepo.findByFromUserAndStatusNot(user, MessageRequest.RequestStatus.REJECTED);
+        return list.stream().map(r -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", r.getId());
+            map.put("toUserId", r.getToUser() != null ? r.getToUser().getId() : null);
+            map.put("toEmail", r.getToUser() != null ? r.getToUser().getEmail() : null);
+            map.put("toName", r.getToUser() != null ? r.getToUser().getName() : null);
+            map.put("message", r.getMessage());
+            map.put("status", r.getStatus());
+            map.put("createdAt", r.getCreatedAt());
+            return map;
+        }).collect(Collectors.toList());
     }
 
     public void deleteRequest(Long id) {

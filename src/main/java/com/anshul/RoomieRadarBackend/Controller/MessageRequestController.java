@@ -7,12 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 // MessageRequestController.java
 @RestController
@@ -35,29 +31,12 @@ public class MessageRequestController {
     @GetMapping("/inbox")
     public ResponseEntity<?> inbox(Authentication authentication) {
         String email = authentication.getName(); // currently logged-in user
-
-        var list = chatService.getPendingRequestsForEmail(email);
-
-        // map to DTOs or minimal view
-        var view = list.stream().map(r -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", r.getId());
-            map.put("fromUserId", r.getFromUser() != null ? r.getFromUser().getId() : null);
-            map.put("fromEmail", r.getFromUser() != null ? r.getFromUser().getEmail() : null);
-            map.put("fromName", r.getFromUser() != null ? r.getFromUser().getName() : null);
-            map.put("message", r.getMessage());
-            map.put("createdAt", r.getCreatedAt());
-            return map;
-        }).collect(Collectors.toList());
-
-        return ResponseEntity.ok(view);
+        return ResponseEntity.ok(chatService.getPendingRequestsForEmail(email));
     }
 
     @PostMapping("/{id}/respond")
     public ResponseEntity<?> respond(@PathVariable Long id,
-            @RequestBody ResponseDTO dto) {
-        // Get current logged-in user
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            @RequestBody ResponseDTO dto, Authentication authentication) {
         String email = authentication.getName();
 
         // Process the response to the message request
@@ -74,22 +53,7 @@ public class MessageRequestController {
     @GetMapping("/sent")
     public ResponseEntity<?> getsentrequests(Authentication authentication) {
         String email = authentication.getName(); // currently logged-in user
-
-        var list = chatService.getSentRequestsForEmail(email);
-
-        // map to DTOs or minimal view
-        var view = list.stream().map(r -> {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", r.getId());
-            map.put("toUserId", r.getToUser() != null ? r.getToUser().getId() : null);
-            map.put("toEmail", r.getToUser() != null ? r.getToUser().getEmail() : null);
-            map.put("toName", r.getToUser() != null ? r.getToUser().getName() : null);
-            map.put("message", r.getMessage());
-            map.put("status", r.getStatus());
-            map.put("createdAt", r.getCreatedAt());
-            return map;
-        }).toList();
-        return ResponseEntity.ok(view);
+        return ResponseEntity.ok(chatService.getSentRequestsForEmail(email));
     }
 
     @DeleteMapping("/{id}")

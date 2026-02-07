@@ -5,16 +5,32 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
-import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ConversationDTO{
+public class ConversationDTO {
     private Long id;
-    private List<Long> participantIds;
     private Instant lastMessageAt;
-    // getters/setters and mapping methods
+    private ParticipantDTO otherParticipant;
+    private LastMessageDTO lastMessage;
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ParticipantDTO {
+        private Long id;
+        private String name;
+        private String avatar;
+        private Instant lastActive;
+        private boolean isActive;
+    }
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class LastMessageDTO {
+        private String content;
+        private Instant createdAt;
+    }
 }
