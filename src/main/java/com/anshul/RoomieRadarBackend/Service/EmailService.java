@@ -1,51 +1,37 @@
 package com.anshul.RoomieRadarBackend.Service;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
-import java.util.HashMap;
-import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 public class EmailService {
-    private final RestTemplate restTemplate;
+    private final JavaMailSender mailSender;
 
-    @Value("${resend.api.key}")
-    private String resendApiKey;
-
-    @Value("${resend.from.email}")
+    @Value("${spring.mail.username}")
     private String fromEmail;
 
-    public EmailService(RestTemplate restTemplate) {
-        this.restTemplate = restTemplate;
+    public EmailService(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
     }
 
+    @Async
     public void sendEmail(String to, String subject, String content) {
-        String url = "https://api.resend.com/emails";
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + resendApiKey);
-
-        Map<String, Object> body = new HashMap<>();
-        body.put("from", "RoomieRadar <" + fromEmail + ">");
-        body.put("to", to);
-        body.put("subject", subject);
-        body.put("text", content); // Using plain text for now, can use "html" for formatted emails
-
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
         try {
-            restTemplate.postForEntity(url, entity, String.class);
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(content);
+
+            mailSender.send(message);
             log.info("Email sent successfully to: {}", to);
         } catch (Exception e) {
-            log.error("Failed to send email via Resend to {}: {}", to, e.getMessage());
-            // In a real app, you might want to retry or throw a custom exception
+            log.error("Failed to send email to {}: {}", to, e.getMessage());
         }
     }
 
